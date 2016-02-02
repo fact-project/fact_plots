@@ -27,9 +27,9 @@ outputfile = args["<outputfile>"]
 tablename = args["--tablename"]
 
 print("loading data file")
-data_df = pd.read_hdf(datafile, tablename)
+data_df = pd.read_hdf(datafile, tablename).head(1e3)
 print("loading proton file")
-proton_df = pd.read_hdf(protonfile, tablename)
+proton_df = pd.read_hdf(protonfile, tablename).head(1e3)
 # gamma_df = pd.read_hdf(gammafile, tablename)
 
 data_keys = data_df.keys()
