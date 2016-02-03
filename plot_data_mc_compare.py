@@ -11,13 +11,39 @@ Options:
 """
 from __future__ import print_function
 import numpy as np
-# import matplotlib
+import matplotlib
+import datetime
+# matplotlib.rc_file("./matplotlibrc")
 # matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from docopt import docopt
 import pandas as pd
 import default_plots as dp
+import gc
+
+print(matplotlib.matplotlib_fname())
+
+
+def merge_dicts(*dict_args):
+    '''
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    '''
+    result = {}
+    for dictionary in dict_args:
+        result.update(dictionary)
+    return result
+
+# default plotting options for all comparison plots
+
+default_plot_option = dict(
+    histtype='step',
+    normed=True,
+    bottom=0,
+    align='left',
+)
+
 args = docopt(__doc__)
 
 datafile = args["<datafile>"]
@@ -25,11 +51,12 @@ protonfile = args["<protonfile>"]
 outputfile = args["<outputfile>"]
 
 tablename = args["--tablename"]
+ignorekeys = args["--ignore"]
 
 print("loading data file")
-data_df = pd.read_hdf(datafile, tablename).head(1e3)
+data_df = pd.read_hdf(datafile, tablename)
 print("loading proton file")
-proton_df = pd.read_hdf(protonfile, tablename).head(1e3)
+proton_df = pd.read_hdf(protonfile, tablename)
 # gamma_df = pd.read_hdf(gammafile, tablename)
 
 data_keys = data_df.keys()
@@ -42,15 +69,19 @@ print("\nList of Keys:")
 with PdfPages(outputfile) as pdf:
     for key in common_keys:
         print(key)
-        plt.figure()
-        plt.title(key)
+
+        if ignorekeys != None:
+            if key in ignorekeys:
+                print("skipping column{}: on ignore list".format(key))
+                continue
 
         if isinstance(proton_df[key][0], (list, tuple)) \
         or isinstance(data_df[key][0], (list, tuple)):
-                plt.close()
-                print("not a numeber")
-                continue
+            print("skipping column{}: cannot interprete content".format(key))
+            continue
 
+        plt.figure()
+        plt.title(key)
         plot_option = None
         if key in dp.default_plots:
             plot_option = dp.default_plots[key]
@@ -59,40 +90,57 @@ with PdfPages(outputfile) as pdf:
                 plt.close()
                 continue
 
-            if plot_option == None:
-                try:
-                    plt.hist(data_df[key], histtype='step', normed=True, label="data", color="black")
-                    plt.hist(proton_df[key], histtype='step', normed=True, label="proton", color="red")
-                    plt.legend()
+            gc.collect()
+            print(default_plot_option)
 
-                except Exception as inst:
-                    print(type(inst))     # the exception instance
-                    print(inst.args)      # arguments stored in .args
-                    print(inst)
+            xlabel = key
+
+            data = data_df[key]
+            proton = proton_df[key]
+
+            if plot_option == None:
+                plot_option = default_plot_option
             else:
                 func = plot_option["func"]
-                data = data_df[key]
-                proton = proton_df[key]
+                xUnit = plot_option["xUnit"]
+
+                xlabel += " / " + xUnit
+
                 if func:
                     print("Function:", func+"(data_df.{})".format(key))
                     data = eval(func+"(data_df.{})".format(key))
                     proton = eval(func+"(proton_df.{})".format(key))
+                    if "np." in func:
+                        func = func.replace("np.", "")
+                        xlabel = func+"({})".format(xlabel)
 
                 del plot_option["func"]
                 del plot_option["xUnit"]
 
-                print(plot_option)
+                plot_option = merge_dicts(default_plot_option, plot_option)
 
-                try:
-                    plt.hist(data, histtype='step', normed=True, label="data", color="black", **plot_option)
-                    plt.hist(proton, histtype='step', normed=True, label="proton", color="red", **plot_option)
+            try:
+                plt.hist(data, color="black", label="data", **plot_option)
+                plt.hist(proton, color="red", label="proton", **plot_option)
 
-                except Exception as inst:
-                    print(type(inst))     # the exception instance
-                    print(inst.args)      # arguments stored in .args
-                    print(inst)
+            except Exception as inst:
+                print(type(inst))     # the exception instance
+                print(inst.args)      # arguments stored in .args
+                print(inst)
+
+            plt.xlabel(xlabel)
+            plt.ylabel("Frequency")
 
         plt.legend()
         # plt.show()
         pdf.savefig()
+
         plt.close()
+        # We can also set the file's metadata via the PdfPages object:
+        d = pdf.infodict()
+        d['Title'] = 'Data MC Comparison plots'
+        d['Author'] = u'Jens Buss'
+        d['Subject'] = 'Comparison'
+        d['Keywords'] = 'Data:{}\n Proton:{}\n Rest:{}'.format(datafile, protonfile, str(args))
+        d['CreationDate'] = datetime.datetime.today()
+        d['ModDate'] = datetime.datetime.today()
