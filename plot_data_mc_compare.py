@@ -5,9 +5,11 @@ Usage:
     plot_data_mc_compare.py <datafile> <protonfile> <outputfile> [options]
 
 Options:
-    --ignore <keys>      keys to ignore as comma separated list
-    --tablename=<name>   [default: table]
-    --gammafile=<name>   [default: None]
+    --ignore <keys>         keys to ignore as comma separated list
+    --tablename=<name>      [default: table]
+    --gammafile=<name>      [default: None]
+    --cuts <cuts>           cuts for the pandas data frame as comma separated list
+    --default_cuts <cuts>   choose predefined default cuts as comma separted list e.g. qualitycuts, precuts
 """
 from __future__ import print_function
 import numpy as np
@@ -20,6 +22,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from docopt import docopt
 import pandas as pd
 import default_plots as dp
+import default_cuts as dc
 import gc
 
 print(matplotlib.matplotlib_fname())
@@ -46,12 +49,29 @@ default_plot_option = dict(
 
 args = docopt(__doc__)
 
-datafile = args["<datafile>"]
-protonfile = args["<protonfile>"]
-outputfile = args["<outputfile>"]
+datafile    = args["<datafile>"]
+protonfile  = args["<protonfile>"]
+outputfile  = args["<outputfile>"]
 
-tablename = args["--tablename"]
-ignorekeys = args["--ignore"]
+tablename   = args["--tablename"]
+ignorekeys  = args["--ignore"]
+
+cuts            = args["--cuts"]
+default_cuts    = args["--default_cuts"]
+
+plotting_cuts = list()
+if cuts:
+    print("will use given cuts")
+    plotting_cuts.extend(cuts.split(","))
+
+if default_cuts:
+    print("will use given default cuts")
+    list_of_default_cuts = default_cuts.split(",")
+    for cut_set in list_of_default_cuts:
+        plotting_cuts.extend(dc.cuts[cut_set])
+
+if plotting_cuts:
+    print("using cuts:", plotting_cuts)
 
 print("loading data file")
 data_df = pd.read_hdf(datafile, tablename)
@@ -61,6 +81,7 @@ proton_df = pd.read_hdf(protonfile, tablename)
 
 data_keys = data_df.keys()
 proton_keys = proton_df.keys()
+
 
 common_keys = set(data_keys).intersection(proton_keys)
 common_keys = sorted(common_keys)
@@ -95,8 +116,13 @@ with PdfPages(outputfile) as pdf:
 
             xlabel = key
 
-            data = data_df[key]
-            proton = proton_df[key]
+            if plotting_cuts:
+                cuts = " & ".join(plotting_cuts)
+                data = data_df.query(cuts)[key]
+                proton = proton_df.query(cuts)[key]
+            else:
+                data = data_df[key]
+                proton = proton_df[key]
 
             if plot_option == None:
                 plot_option = default_plot_option
@@ -120,8 +146,8 @@ with PdfPages(outputfile) as pdf:
                 plot_option = merge_dicts(default_plot_option, plot_option)
 
             try:
-                plt.hist(data, color="black", label="data", **plot_option)
-                plt.hist(proton, color="red", label="proton", **plot_option)
+                plt.hist(data.values, color="black", label="data", **plot_option)
+                plt.hist(proton.values, color="red", label="proton", **plot_option)
 
             except Exception as inst:
                 print(type(inst))     # the exception instance
