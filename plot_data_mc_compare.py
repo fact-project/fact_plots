@@ -65,7 +65,7 @@ if cuts:
     plotting_cuts.extend(cuts.split(","))
 
 if default_cuts:
-    print("will use given default cuts")
+    print("will use given default cuts: ", default_cuts)
     list_of_default_cuts = default_cuts.split(",")
     for cut_set in list_of_default_cuts:
         plotting_cuts.extend(dc.cuts[cut_set])
@@ -167,6 +167,6 @@ with PdfPages(outputfile) as pdf:
         d['Title'] = 'Data MC Comparison plots'
         d['Author'] = u'Jens Buss'
         d['Subject'] = 'Comparison'
-        d['Keywords'] = 'Data:{}\n Proton:{}\n Rest:{}'.format(datafile, protonfile, str(args))
+        d['Keywords'] = 'Data:{}\nProton:{}\nRest:{}\nCuts:{}'.format(datafile, protonfile, str(args), str(cuts))
         d['CreationDate'] = datetime.datetime.today()
         d['ModDate'] = datetime.datetime.today()
