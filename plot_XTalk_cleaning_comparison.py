@@ -26,6 +26,7 @@ import logging
 import gc
 import os
 import resolutionHelper as reso
+from cycler import cycler
 
 logger  = logging.getLogger(__name__)
 
@@ -129,6 +130,11 @@ with PdfPages(outputfile) as pdf:
     for setting in settings:
         fig_hist, axs_hist = plt.subplots(nrows=1, ncols=2, sharey=True)
         fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
+
+        axs[0].set_prop_cycle(cycler('color', ['red', 'b', 'black', 'g', 'y', 'c', 'm', 'k']))
+        axs[1].set_prop_cycle(cycler('color', ['red', 'b', 'black', 'g', 'y', 'c', 'm', 'k']))
+        axs_hist[0].set_prop_cycle(cycler('color', ['red', 'b', 'black', 'g', 'y', 'c', 'm', 'k']))
+        axs_hist[1].set_prop_cycle(cycler('color', ['red', 'b', 'black', 'g', 'y', 'c', 'm', 'k']))
 
         for key in data_dict:
             data = data_dict[key]
