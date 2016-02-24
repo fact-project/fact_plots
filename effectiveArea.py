@@ -6,6 +6,7 @@ import datetime
 # matplotlib.rc_file("./matplotlibrc")
 # matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
+import pltutils as pltu
 from matplotlib.backends.backend_pdf import PdfPages
 from docopt import docopt
 import logging
@@ -28,19 +29,20 @@ def calculate_a_eff_bin(n_trigger, max_impact, E_bin_low, e_bin_high, E_min, E_m
 def calc_a_eff(e_mc, nBins, min_e=None, max_e=None, max_impact=170, gamma=-2.7, nCorsika = 12e6):
     """Calculates the effective collection area for each given energy bin
 
-    Keyword arguments:
+    Paramters
+    ---------
 
-    e_mc -- monte carlo energy
+    e_mc : monte carlo energy
 
-    nBins        -- number of energy bins in range
+    nBins : number of energy bins in range
 
-    min_e       -- min. simulated energy in GeV
+    min_e : min. simulated energy in GeV
 
-    max_e       -- max. simulated energy in GeV
+    max_e : max. simulated energy in GeV
 
-    max_impact  -- maximally simulated impact parameter in m
+    max_impact : maximally simulated impact parameter in m
 
-    gamma       -- spectral index
+    gamma : spectral index
     """
 
     if min_e is None:
@@ -121,3 +123,17 @@ def calc_a_eff(e_mc, nBins, min_e=None, max_e=None, max_impact=170, gamma=-2.7, 
     )
 
     return return_dict
+
+def plot_eff_area(ax, e_mc, label="1" ):
+    effectiveArea = calc_a_eff(e_mc, 20, min_e=200, max_e=50e3)
+
+    plt.errorbar(effectiveArea["bin_middles"],
+                effectiveArea["Aeff"],
+                xerr=effectiveArea["bin_widths"],
+                yerr=effectiveArea["Aeff_res"],
+                fmt="o", label=label)
+
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+    ax.set_xlabel("log10(E / GeV)")
+    ax.set_ylabel("log10(A_eff / mˆ2)")
