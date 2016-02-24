@@ -31,8 +31,6 @@ def calc_resolution(e_mc, e_rek, bin_width=5, plot_hists=False, min_e=None, max_
         max_e = np.max(e_mc)
 
     bins = int((max_e - min_e)/bin_width)
-    bins_rek = []
-    bins_mc  = []
     bin_middles = np.empty(bins)
     bin_middles[:] = np.nan
     res = np.empty(bins)
@@ -56,8 +54,8 @@ def calc_resolution(e_mc, e_rek, bin_width=5, plot_hists=False, min_e=None, max_
         if np.sum(mask) <= 1:
             continue
 
-        bins_rek.append(e_rek[mask])
-        bins_mc.append(e_mc[mask])
+        bin_rek = e_rek[mask]
+        bin_mc  = e_mc[mask]
 
         bin_middles[i] = bin_width * (i+0.5) + min_e
 
@@ -65,7 +63,6 @@ def calc_resolution(e_mc, e_rek, bin_width=5, plot_hists=False, min_e=None, max_
     # sigma1 = par("sigma1")
     # model = Normal(diff, mu1, sigma1)
 
-    for i, bin_mc, bin_rek, bin_middle in zip(np.arange(bins),bins_mc, bins_rek, bin_middles):
         rel_diff = (bin_rek-bin_mc)/bin_mc
         rel_diff = rel_diff[abs(rel_diff)<8]
         rel_diff = np.array(rel_diff)
@@ -76,7 +73,11 @@ def calc_resolution(e_mc, e_rek, bin_width=5, plot_hists=False, min_e=None, max_
                                               density=True,
                                               )
         fit_middles = 0.5*(fit_edges[1:] + fit_edges[:-1])
-        params, cov = curve_fit(gauss, fit_middles, fit_entries)
+        try:
+            params, cov = curve_fit(gauss, fit_middles, fit_entries)
+        except RuntimeError:
+            print("runtime exceeded")
+            continue
 
         # result = model.fit({"diff": np.array(rel_diff)}, init={"mu1":1, "sigma1":0.5}, method="Powell")
 
@@ -93,7 +94,7 @@ def calc_resolution(e_mc, e_rek, bin_width=5, plot_hists=False, min_e=None, max_
         means[i]    = mean
         err_means[i]= f_mean
 
-        print("bin {:3d} : #={:6d} $/sigma$={:1.2f} +/- {:1.2f} bin_middle={:1.2f}".format(i, len(bin_mc), sigma,f_sigma, bin_middle))
+        print("bin {:3d} : #={:6d} $/sigma$={:1.2f} +/- {:1.2f} bin_middle={:1.2f}".format(i, len(bin_mc), sigma,f_sigma, bin_middles[i]))
         if plot_hists is True:
             x_plot = np.linspace(-1, 8, 1000)
             plt.figure()
@@ -104,14 +105,14 @@ def calc_resolution(e_mc, e_rek, bin_width=5, plot_hists=False, min_e=None, max_
             pdf.savefig()
             #plt.show()
 
-        return_dict = dict(
-            res         = np.array(res),
-            err_res     = np.array(err_res),
-            means       = np.array(means),
-            err_means   = np.array(err_means),
-            bin_middles = np.array(bin_middles),
-            bin_width   = np.array(bin_width)
-        )
+    return_dict = dict(
+        res         = np.array(res),
+        err_res     = np.array(err_res),
+        means       = np.array(means),
+        err_means   = np.array(err_means),
+        bin_middles = np.array(bin_middles),
+        bin_width   = np.array(bin_width)
+    )
 
     return return_dict
 
