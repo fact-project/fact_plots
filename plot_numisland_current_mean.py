@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
-"""Plot effective area for a dataset from HDF5 files
+"""Plot numislands vs mean camera current for a dataset from HDF5 files
+
+TEXINPUTS=$(pwd): python plot_numisland_current_mean.py /home/jbuss/plots/numIslandsCureents.pdf /fhgfs/users/jbuss/20140615_27_cStd.hdf /fhgfs/users/jbuss/20140615_27_c6_4.hdf /fhgfs/users/jbuss/20140615_27_c7_5.hdf --password r3adfac! --pattern "_c,.hdf" --unit="p.e." --feature="Level:"
 
 Usage:
     plot_numisland_cureent_mean.py <outputfile> <datafiles>... [options]
@@ -36,7 +38,8 @@ def buildLabel(path, pattern, feature=None, unit=None):
     label_val = os.path.basename(datafile).split(pattern[0])[-1].split(pattern[1])[0]
     if "Std" in label_val:
         label_val = "5.5_3"
-    label_val = " ".join(label_val.split('_'))
+    label_val = ", ".join(label_val.split('_'))
+    label_val = "({})".format(label_val)
     if feature:
         label_val = feature + " " + label_val
     if unit:
@@ -120,18 +123,22 @@ ax = plt.subplot(1,1,1)
 
 logger.info("binning data")
 for df, label in zip(df_list, labels):
+    logger.info("{}".format(label))
     binned = mean_data_binned(df, "fCurrentsMedMean", "numIslands", bin_width=1)
     ax.errorbar(binned["bin_center"].values,
                 binned["numIslands_mean"].values,
-                xerr=1,
+                xerr=0.5,
                 # yerr=binned["numIslands_std"].values/binned["numIslands_size"].values,
                 yerr=binned["numIslands_sem"].values,
                 fmt=",",
                 label = label,
+                capsize=1,
                 )
 
 ax.set_xlabel("Mean current in pixels / $\si{\micro A}$")
 ax.set_ylabel("Mean number of islands")
 ax.legend(loc="upper left")
 
+logger.info("saving image data: {}".format(outputfile))
 fig.savefig(outputfile)
+fig.savefig(outputfile[:-3]+"png", dpi=600)
