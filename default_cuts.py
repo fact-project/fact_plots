@@ -30,3 +30,24 @@ cuts["precuts"] = [
         # "ConcCore > 0",
         "concCOG > 0.055"
 ]
+
+cuts["analysis4_pre"] = [
+    "Leakage < 0.6",
+    "Leakage2 < 0.85",
+    "numIslands < 8",
+    "numPixelInShower >= 10",
+    "Width < 35",
+    "Length < 70",
+]
+
+cuts["ICRC2015_pre_Xtalk"] = [
+        "Size > 60",
+         "Leakage <= 0.09",
+         "Leakage2 <= 0.15",
+         "numIslands <2",
+         "Width < 10",
+         "Length < 28",
+        #  "Width*Length*3.141/pow(log10(Size),2) < 80", #area vs. size cut
+        "Concentration_onePixel > 0.044",
+        "Concentration_twoPixel > 0.09",
+]
