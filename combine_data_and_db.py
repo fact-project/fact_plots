@@ -151,7 +151,8 @@ plt.errorbar(binned["bin_middles"],
             xerr=binned["bin_width"],
             yerr=binned["means_err"],
             fmt="o")
-
+ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+ax.set_ylabel("mean number of islands")
 
 fig.savefig("numIslands.pdf")
 
@@ -166,6 +167,8 @@ plt.errorbar(binned["bin_middles"],
             xerr=binned["bin_width"],
             yerr=binned["means_err"],
             fmt="o")
+ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+ax.set_ylabel("mean of ped_var")
 
 
 fig.savefig("pedVar.pdf")
@@ -174,21 +177,6 @@ fig.savefig("pedVar.pdf")
 # ax = plt.subplot(1,1,1)
 # plt.scatter(result["fCurrentsMedMean"], result["ped_var_mean"])
 # fig.savefig("pedVar_scat.pdf")
-
-binned = mean_data_binned(result["fCurrentsMedMean"], result["ped_var_variance"],
-                    nBins=50, max_val=30)
-
-fig = plt.figure()
-ax = plt.subplot(1,1,1)
-
-plt.errorbar(binned["bin_middles"],
-            binned["means"],
-            xerr=binned["bin_width"],
-            yerr=binned["means_err"],
-            fmt="o")
-
-
-fig.savefig("ped_var_variance.pdf")
 
 binned = mean_data_binned(result["fCurrentsMedMean"], result["ped_sum_mean"],
                     nBins=50, max_val=30)
@@ -202,6 +190,8 @@ plt.errorbar(binned["bin_middles"],
             yerr=binned["means_err"],
             fmt="o")
 
+ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+ax.set_ylabel("mean of ped_sum_mean")
 
 fig.savefig("ped_sum_mean.pdf")
 
@@ -217,5 +207,7 @@ plt.errorbar(binned["bin_middles"],
             yerr=binned["means_err"],
             fmt="o")
 
+ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+ax.set_ylabel("mean of pedestal Size")
 
 fig.savefig("pedestalSize.pdf")
