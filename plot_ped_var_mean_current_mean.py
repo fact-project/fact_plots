@@ -4,7 +4,7 @@
 TEXINPUTS=$(pwd): python plot_numisland_current_mean.py /home/jbuss/plots/numIslandsCureents.pdf /fhgfs/users/jbuss/20140615_27_cStd.hdf /fhgfs/users/jbuss/20140615_27_c6_4.hdf /fhgfs/users/jbuss/20140615_27_c7_5.hdf --password r3adfac! --pattern "_c,.hdf" --unit="p.e." --feature="Level:"
 
 Usage:
-    plot_ped_var_mean_cureent_mean.py <outputfile> <datafiles>... [options]
+    plot_ped_var_mean_cureent_mean.py <outputfile> <datafile> [options]
 
 Options:
     --tablename=<name>      [default: table]
@@ -33,6 +33,12 @@ args = docopt(__doc__)
 
 def gauss(x, mu, sigma):
     return 1/(np.sqrt(2*np.pi)*sigma) * np.exp(-0.5*(x-mu)**2/sigma**2)
+
+def f_sqrt(x, a, b):
+    return a * np.sqrt(x) + b
+
+def f_lin(x, a, b):
+    return a * x + b
 
 def buildLabel(path, pattern, feature=None, unit=None):
     if not pattern:
@@ -87,7 +93,7 @@ logging.captureWarnings(True)
 logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
 
 
-datafiles   = args["<datafiles>"]
+datafile   = args["<datafile>"]
 outputfile  = args["<outputfile>"]
 
 tablename   = args["--tablename"]
@@ -108,19 +114,13 @@ rundb = pd.read_sql("SELECT * from RunInfo WHERE (fNight > 20140614 AND fNight <
 logger.debug(rundb["fCurrentsMedMean"].describe())
 
 logger.info("loading Files")
-df_list = []
-labels = []
 
-for datafile in datafiles:
-    logger.info("loading: {}".format(datafile))
-    df = pd.read_hdf(datafile, tablename)
-    logger.debug("{} Events in file".format(len(df)))
-    logger.info("merging database")
-    df = combine_data_to_db(rundb, df)
-    embed()
-    # df = df.query("Size > 60")
-    df_list.append(df)
-    labels.append( buildLabel (datafile, pattern, feature, unit))
+logger.info("loading: {}".format(datafile))
+df = pd.read_hdf(datafile, tablename)
+logger.debug("{} Events in file".format(len(df)))
+logger.info("merging database")
+df = combine_data_to_db(rundb, df)
+# df = df.query("Size > 60")
 
 fig = plt.figure()
 ax = plt.subplot(1,1,1)
@@ -129,23 +129,31 @@ feature_name = "ped_var_mean"
 gain = 257.
 
 logger.info("binning data")
-for df, label in zip(df_list, labels):
-    binned = mean_data_binned(df, "fCurrentsMedMean", feature_name, bin_width=1.01)
-    ax.errorbar(binned["bin_center"].values,
-                binned[feature_name+"_mean"].values/gain**2,
-                xerr=0.5,
-                # yerr=binned[feature_name+"_std"].values/binned[feature_name+"_size"].values,
-                yerr=binned[feature_name+"_sem"].values/gain**2,
-                fmt=",",
-                label = label,
-                capsize=1,
-                )
+
+binned = mean_data_binned(df, "fCurrentsMedMean", feature_name, bin_width=1.01)
+ax.errorbar(binned["bin_center"].values,
+            binned[feature_name+"_mean"].values/gain**2,
+            xerr=0.5,
+            # yerr=binned[feature_name+"_std"].values/binned[feature_name+"_size"].values,
+            yerr=binned[feature_name+"_sem"].values/gain**2,
+            fmt=",",
+            label = "Data",
+            capsize=1,
+            )
 
 ax.set_xlabel("Mean current in pixels / $\si{\micro A}$")
 ax.set_ylabel("Mean pedestal variance / $\mathrm{p.e}.^2$")
 
-if pattern:
-    ax.legend(loc="upper left")
+params, cov = curve_fit(f_lin,
+                        binned["bin_center"].values,
+                        binned[feature_name+"_mean"].values/gain**2)
+x_plot = np.linspace(0, 60, 1000)
+
+ax.plot(x_plot, f_lin(x_plot, *params), 'b-', linewidth=0.8, label="linear fit")
+ax.text(40, 3.1, "$f(x)={:.2f} \cdot x + {:.2f}".format(*params),
+            fontsize=12, color='b')
+
+ax.legend(loc="upper left")
 
 fig.savefig(outputfile)
 
