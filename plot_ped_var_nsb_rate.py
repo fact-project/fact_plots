@@ -117,7 +117,7 @@ ax.errorbar(nsb_rate,
             )
 ax.plot(x_plot, f_lin(x_plot, *params), 'b-', linewidth=0.8, label="linear fit")
 ax.text(210, 4.1, "$f(x)={:.2f} \cdot x + {:.2f}".format(*params),
-            fontsize=10, color='b')
+            fontsize=12, color='b')
 
 ax.set_xlabel("Simulated NSB rate / $\si{\mega \hertz}$")
 ax.set_ylabel("Mean pedestal variance / $\mathrm{p.e.^2}")
