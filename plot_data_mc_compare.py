@@ -2,12 +2,11 @@
 """Plot Data MonteCarlo comparison plots from HDF5 files
 
 Usage:
-    plot_data_mc_compare.py <datafile> <protonfile> <outputfile> [options]
+    plot_data_mc_compare.py <outputfile> <datafiles>... [options]
 
 Options:
     --ignore <keys>         keys to ignore as comma separated list
     --tablename=<name>      [default: table]
-    --gammafile=<name>      [default: None]
     --cuts <cuts>           cuts for the pandas data frame as comma separated list
     --default_cuts <cuts>   choose predefined default cuts as comma separted list e.g. qualitycuts, precuts
 """
@@ -21,9 +20,12 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from docopt import docopt
 import pandas as pd
+import logging
 import default_plots as dp
 import default_cuts as dc
+from IPython import embed
 import gc
+import os
 
 print(matplotlib.matplotlib_fname())
 
@@ -48,9 +50,12 @@ default_plot_option = dict(
 )
 
 args = docopt(__doc__)
+logger  = logging.getLogger(__name__)
 
-datafile    = args["<datafile>"]
-protonfile  = args["<protonfile>"]
+logging.captureWarnings(True)
+logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
+
+datafiles   = args["<datafiles>"]
 outputfile  = args["<outputfile>"]
 
 tablename   = args["--tablename"]
@@ -72,33 +77,42 @@ if default_cuts:
 
 if plotting_cuts:
     print("using cuts:", plotting_cuts)
-
-print("loading data file")
-data_df = pd.read_hdf(datafile, tablename)
-print("loading proton file")
-proton_df = pd.read_hdf(protonfile, tablename)
-# gamma_df = pd.read_hdf(gammafile, tablename)
-
-data_keys = data_df.keys()
-proton_keys = proton_df.keys()
+    cuts = " & ".join(plotting_cuts)
 
 
-common_keys = set(data_keys).intersection(proton_keys)
+df_list = []
+key_list = []
+common_keys = None
+for i, datafile in enumerate(datafiles):
+    logger.info("loading: {}".format(datafile))
+    df = pd.read_hdf(datafile, tablename)
+    logger.debug("{} Events in file".format(len(df)))
+    if cuts:
+        df = df.query(cuts)
+    df["filename"] = os.path.basename(datafile)[:-4]
+    df_list.append(df)
+    if i == 0:
+        common_keys = df.keys()
+    else:
+        common_keys = set(common_keys).intersection(df.keys())
+
+
+#Sort the list of keys
 common_keys = sorted(common_keys)
-print("\nList of Keys:")
+
+if ignorekeys != None:
+    common_keys = set(common_keys).difference(ignorekeys)
+    for key in ignorekeys:
+        logger.info("skipping column{}: on ignore list".format(key))
 
 with PdfPages(outputfile) as pdf:
+    logger.info("\nList of Keys:")
     for key in common_keys:
         print(key)
 
-        if ignorekeys != None:
-            if key in ignorekeys:
-                print("skipping column{}: on ignore list".format(key))
-                continue
-
-        if isinstance(proton_df[key][0], (list, tuple)) \
-        or isinstance(data_df[key][0], (list, tuple)):
-            print("skipping column{}: cannot interprete content".format(key))
+        #skip tupples
+        if isinstance(df_list[0][key][0], (list, tuple)):
+            logger.info("skipping column{}: cannot interprete content".format(key))
             continue
 
         plt.figure()
@@ -115,58 +129,55 @@ with PdfPages(outputfile) as pdf:
             print(default_plot_option)
 
             xlabel = key
-
-            if plotting_cuts:
-                cuts = " & ".join(plotting_cuts)
-                data = data_df.query(cuts)[key]
-                proton = proton_df.query(cuts)[key]
-            else:
-                data = data_df[key]
-                proton = proton_df[key]
+            func = None
+            xUnit=""
 
             if plot_option == None:
                 plot_option = default_plot_option
             else:
-                func = plot_option["func"]
-                xUnit = plot_option["xUnit"]
+                # embed()
+                func    = plot_option["func"]
+                xUnit   = plot_option["xUnit"]
+                xlabel  += " / " + xUnit
 
-                xlabel += " / " + xUnit
-
-                if func:
-                    print("Function:", func+"(data_df.{})".format(key))
-                    data = eval(func+"(data_df.{})".format(key))
-                    proton = eval(func+"(proton_df.{})".format(key))
-                    if "np." in func:
-                        func = func.replace("np.", "")
-                        xlabel = func+"({})".format(xlabel)
+                if func and func.__name__ and not "lambda" in func.__name__:
+                    # embed()
+                    func_name = str(func.__name__)
+                    print("Function:", func_name+"({})".format(key))
+                    xlabel = func_name+"({})".format(xlabel)
 
                 del plot_option["func"]
                 del plot_option["xUnit"]
 
                 plot_option = merge_dicts(default_plot_option, plot_option)
 
-            try:
-                plt.hist(data.values, color="black", label="data", **plot_option)
-                plt.hist(proton.values, color="red", label="proton", **plot_option)
+            for df in df_list:
+                data = df[key]
 
-            except Exception as inst:
-                print(type(inst))     # the exception instance
-                print(inst.args)      # arguments stored in .args
-                print(inst)
+                if func:
+                    data = func(data)
 
-            plt.xlabel(xlabel)
-            plt.ylabel("Frequency")
+                try:
+                    plt.hist(data.values, label=df["filename"][0], **plot_option)
 
-        plt.legend()
-        # plt.show()
-        pdf.savefig()
+                except Exception as inst:
+                    print(type(inst))     # the exception instance
+                    print(inst.args)      # arguments stored in .args
+                    print(inst)
 
-        plt.close()
-        # We can also set the file's metadata via the PdfPages object:
-        d = pdf.infodict()
-        d['Title'] = 'Data MC Comparison plots'
-        d['Author'] = u'Jens Buss'
-        d['Subject'] = 'Comparison'
-        d['Keywords'] = 'Data:{}\nProton:{}\nRest:{}\nCuts:{}'.format(datafile, protonfile, str(args), str(cuts))
-        d['CreationDate'] = datetime.datetime.today()
-        d['ModDate'] = datetime.datetime.today()
+                plt.xlabel(xlabel)
+                plt.ylabel("Frequency")
+
+            plt.legend(loc='best')
+            # plt.show()
+            pdf.savefig()
+
+            plt.close()
+            # We can also set the file's metadata via the PdfPages object:
+            d = pdf.infodict()
+            d['Title'] = 'Data MC Comparison plots'
+            d['Author'] = u'Jens Buss'
+            d['Subject'] = 'Comparison'
+            d['Keywords'] = 'Data:{}\nRest:{}\nCuts:{}'.format(datafiles, str(args), str(cuts))
+            d['CreationDate'] = datetime.datetime.today()
+            d['ModDate'] = datetime.datetime.today()
