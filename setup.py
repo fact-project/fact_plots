@@ -35,8 +35,9 @@ setup(
    entry_points={
     'console_scripts': [
         'fact_plot_data_mc_compare = fact_plots.scripts.plot_data_mc_compare:main',
-        'plot_effective_area = fact_plots.scripts.plot_effective_area:main',
-        'plot_ped_std_mean_cureent_mean = fact_plots.scripts.plot_ped_std_mean_cureent_mean:main',
+        'fact_plot_effective_area = fact_plots.scripts.plot_effective_area:main',
+        'fact_plot_ped_std_mean_cureent_mean = fact_plots.scripts.plot_ped_std_mean_cureent_mean:main',
+        'fact_plot_theta = fact_plots.scripts.plot_theta:main',
 
     ],
   }
