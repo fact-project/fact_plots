@@ -28,7 +28,7 @@ from .. import default_cuts as dp
 import gc
 import os
 from cycler import cycler
-from fact_pots.effectiveArea import *
+from fact_plots.effectiveArea import *
 
 def main():
     logger  = logging.getLogger(__name__)

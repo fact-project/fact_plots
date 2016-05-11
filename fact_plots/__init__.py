@@ -1,1 +1,1 @@
-from . import effectivaeArea
+from . import effectiveArea
