@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """Plot effective area for a dataset from HDF5 files. e.g.
 
 TEXINPUTS=$(pwd): python plot_numisland_current_mean.py /home/jbuss/plots/numIslandsCureents.pdf /fhgfs/users/jbuss/20140615_27_cStd.hdf /fhgfs/users/jbuss/20140615_27_c6_4.hdf /fhgfs/users/jbuss/20140615_27_c7_5.hdf --password r3adfac! --pattern "_c,.hdf" --unit="p.e." --feature="Level:"
