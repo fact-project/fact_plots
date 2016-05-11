@@ -110,104 +110,107 @@ def mean_data_binned(df_for_bin, df_for_mean, nBins, min_val=None, max_val=None)
 
     return return_dict
 
-
-logging.captureWarnings(True)
-logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.DEBUG)
-
-
-datafile    = args["<datafile>"]
-# outputfile  = args["<outputfile>"]
-
-tablename   = args["--tablename"]
-password   = args["--password"]
-
-cuts            = args["--cuts"]
-default_cuts    = args["--default_cuts"]
-feature         = args["--feature"]
-unit            = args["--unit"]
-pattern            = args["--pattern"].split(",")
-
-logger.info("loading Data Base")
-factdb = create_engine("mysql+pymysql://factread:{}@129.194.168.95/factdata".format(password))
-rundb = pd.read_sql("SELECT * from RunInfo WHERE (fNight > 20140614 AND fNight < 20140629)", factdb)
-
-logger.info("loading File")
-data_df = pd.read_hdf(datafile, tablename)
-
-logger.info("merging dataframes")
-result = combine_data_to_db(rundb, data_df)
-result = result.query("Size > 60")
-
-print(result["fCurrentsMedMean"].describe())
-logger.info("binning data")
-binned = mean_data_binned(result["fCurrentsMedMean"], result["numIslands"],
-                    nBins=50, max_val=30)
-
-fig = plt.figure()
-ax = plt.subplot(1,1,1)
-
-plt.errorbar(binned["bin_middles"],
-            binned["means"],
-            xerr=binned["bin_width"],
-            yerr=binned["means_err"],
-            fmt="o")
-ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
-ax.set_ylabel("mean number of islands")
-
-fig.savefig("numIslands.pdf")
-
-binned = mean_data_binned(result["fCurrentsMedMean"], result["ped_var_mean"],
-                    nBins=50, max_val=30)
-
-fig = plt.figure()
-ax = plt.subplot(1,1,1)
-
-plt.errorbar(binned["bin_middles"],
-            binned["means"],
-            xerr=binned["bin_width"],
-            yerr=binned["means_err"],
-            fmt="o")
-ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
-ax.set_ylabel("mean of ped_var")
+def main():
+    logging.captureWarnings(True)
+    logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.DEBUG)
 
 
-fig.savefig("pedVar.pdf")
+    datafile    = args["<datafile>"]
+    # outputfile  = args["<outputfile>"]
 
-# fig = plt.figure()
-# ax = plt.subplot(1,1,1)
-# plt.scatter(result["fCurrentsMedMean"], result["ped_var_mean"])
-# fig.savefig("pedVar_scat.pdf")
+    tablename   = args["--tablename"]
+    password   = args["--password"]
 
-binned = mean_data_binned(result["fCurrentsMedMean"], result["ped_sum_mean"],
-                    nBins=50, max_val=30)
+    cuts            = args["--cuts"]
+    default_cuts    = args["--default_cuts"]
+    feature         = args["--feature"]
+    unit            = args["--unit"]
+    pattern            = args["--pattern"].split(",")
 
-fig = plt.figure()
-ax = plt.subplot(1,1,1)
+    logger.info("loading Data Base")
+    factdb = create_engine("mysql+pymysql://factread:{}@129.194.168.95/factdata".format(password))
+    rundb = pd.read_sql("SELECT * from RunInfo WHERE (fNight > 20140614 AND fNight < 20140629)", factdb)
 
-plt.errorbar(binned["bin_middles"],
-            binned["means"],
-            xerr=binned["bin_width"],
-            yerr=binned["means_err"],
-            fmt="o")
+    logger.info("loading File")
+    data_df = pd.read_hdf(datafile, tablename)
 
-ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
-ax.set_ylabel("mean of ped_sum_mean")
+    logger.info("merging dataframes")
+    result = combine_data_to_db(rundb, data_df)
+    result = result.query("Size > 60")
 
-fig.savefig("ped_sum_mean.pdf")
+    print(result["fCurrentsMedMean"].describe())
+    logger.info("binning data")
+    binned = mean_data_binned(result["fCurrentsMedMean"], result["numIslands"],
+                        nBins=50, max_val=30)
 
-binned = mean_data_binned(result["fCurrentsMedMean"], result["pedestalSize"],
-                    nBins=50, max_val=30)
+    fig = plt.figure()
+    ax = plt.subplot(1,1,1)
 
-fig = plt.figure()
-ax = plt.subplot(1,1,1)
+    plt.errorbar(binned["bin_middles"],
+                binned["means"],
+                xerr=binned["bin_width"],
+                yerr=binned["means_err"],
+                fmt="o")
+    ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+    ax.set_ylabel("mean number of islands")
 
-plt.errorbar(binned["bin_middles"],
-            binned["means"],
-            xerr=binned["bin_width"],
-            yerr=binned["means_err"],
-            fmt="o")
+    fig.savefig("numIslands.pdf")
 
-ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
-ax.set_ylabel("mean of pedestal Size")
+    binned = mean_data_binned(result["fCurrentsMedMean"], result["ped_var_mean"],
+                        nBins=50, max_val=30)
 
-fig.savefig("pedestalSize.pdf")
+    fig = plt.figure()
+    ax = plt.subplot(1,1,1)
+
+    plt.errorbar(binned["bin_middles"],
+                binned["means"],
+                xerr=binned["bin_width"],
+                yerr=binned["means_err"],
+                fmt="o")
+    ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+    ax.set_ylabel("mean of ped_var")
+
+
+    fig.savefig("pedVar.pdf")
+
+    # fig = plt.figure()
+    # ax = plt.subplot(1,1,1)
+    # plt.scatter(result["fCurrentsMedMean"], result["ped_var_mean"])
+    # fig.savefig("pedVar_scat.pdf")
+
+    binned = mean_data_binned(result["fCurrentsMedMean"], result["ped_sum_mean"],
+                        nBins=50, max_val=30)
+
+    fig = plt.figure()
+    ax = plt.subplot(1,1,1)
+
+    plt.errorbar(binned["bin_middles"],
+                binned["means"],
+                xerr=binned["bin_width"],
+                yerr=binned["means_err"],
+                fmt="o")
+
+    ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+    ax.set_ylabel("mean of ped_sum_mean")
+
+    fig.savefig("ped_sum_mean.pdf")
+
+    binned = mean_data_binned(result["fCurrentsMedMean"], result["pedestalSize"],
+                        nBins=50, max_val=30)
+
+    fig = plt.figure()
+    ax = plt.subplot(1,1,1)
+
+    plt.errorbar(binned["bin_middles"],
+                binned["means"],
+                xerr=binned["bin_width"],
+                yerr=binned["means_err"],
+                fmt="o")
+
+    ax.set_xlabel("mean current in SiPMs / $\si{\micro\ampere}$")
+    ax.set_ylabel("mean of pedestal Size")
+
+    fig.savefig("pedestalSize.pdf")
+    
+if __name__ == '__main__':
+    main()
