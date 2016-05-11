@@ -21,14 +21,12 @@ from matplotlib.backends.backend_pdf import PdfPages
 from docopt import docopt
 import pandas as pd
 import logging
-import default_plots as dp
-import default_cuts as dc
 from IPython import embed
 import gc
 import os
 
-print(matplotlib.matplotlib_fname())
-
+from ..default_plots import default_plots
+from ..default_cuts import cuts as default_cuts
 
 def merge_dicts(*dict_args):
     '''
