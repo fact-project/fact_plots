@@ -1,15 +1,15 @@
 from setuptools import setup
 
 setup(
-    name='fact-plotting',
+    name='fact_plots',
     version='0.0.1',
     description='a collection of plotting scrtipts for data of FACT',
-    url='https://github.com/jebuss/fact-plotting',
+    url='https://github.com/jebuss/fact_plots',
     author='Jens Buss',
     author_email='jens.buss@tu-dortmund.de',
     license='BEER',
     packages=[
-        'fact_plotting',
+        'fact_plots',
     ],
     # dependency_links = ['git+https://github.com/mackaiver/gridmap.git#egg=gridmap'],
     package_data={
@@ -34,7 +34,7 @@ setup(
    zip_safe=False,
    entry_points={
     'console_scripts': [
-        'fact_plot_data_mc_compare = fact_plotting.scripts.plot_data_mc_compare:main',
+        'fact_plot_data_mc_compare = fact_plots.scripts.plot_data_mc_compare:main',
     ],
   }
 )
