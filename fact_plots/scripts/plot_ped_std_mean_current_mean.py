@@ -82,68 +82,70 @@ def mean_data_binned(df, key_bin, key_mean, bin_width, min_val=None, max_val=Non
     binned['bin_center'] = pd.Series(0.5 * (edges[1:] + edges[:-1]), index=np.arange(nBins) + 1)
     return binned
 
+def main():
+    logging.captureWarnings(True)
+    logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
 
-logging.captureWarnings(True)
-logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
 
+    datafiles   = args["<datafiles>"]
+    outputfile  = args["<outputfile>"]
 
-datafiles   = args["<datafiles>"]
-outputfile  = args["<outputfile>"]
+    tablename   = args["--tablename"]
+    password    = args["--password"]
 
-tablename   = args["--tablename"]
-password    = args["--password"]
+    cuts            = args["--cuts"]
+    default_cuts    = args["--default_cuts"]
+    feature         = args["--feature"]
+    unit            = args["--unit"]
 
-cuts            = args["--cuts"]
-default_cuts    = args["--default_cuts"]
-feature         = args["--feature"]
-unit            = args["--unit"]
+    pattern         = args["--pattern"]
+    if pattern:
+        pattern = pattern.split(",")
 
-pattern         = args["--pattern"]
-if pattern:
-    pattern = pattern.split(",")
+    logger.info("loading Data Base")
+    factdb = create_engine("mysql+pymysql://factread:{}@129.194.168.95/factdata".format(password))
+    rundb = pd.read_sql("SELECT * from RunInfo WHERE (fNight > 20140614 AND fNight < 20140629)", factdb)
 
-logger.info("loading Data Base")
-factdb = create_engine("mysql+pymysql://factread:{}@129.194.168.95/factdata".format(password))
-rundb = pd.read_sql("SELECT * from RunInfo WHERE (fNight > 20140614 AND fNight < 20140629)", factdb)
+    logger.debug(rundb["fCurrentsMedMean"].describe())
 
-logger.debug(rundb["fCurrentsMedMean"].describe())
+    logger.info("loading Files")
+    df_list = []
+    labels = []
 
-logger.info("loading Files")
-df_list = []
-labels = []
+    for datafile in datafiles:
+        logger.info("loading: {}".format(datafile))
+        df = pd.read_hdf(datafile, tablename)
+        logger.debug("{} Events in file".format(len(df)))
+        logger.info("merging database")
+        df = combine_data_to_db(rundb, df)
+        # df = df.query("Size > 60")
+        df_list.append(df)
+        labels.append( buildLabel (datafile, pattern, feature, unit))
 
-for datafile in datafiles:
-    logger.info("loading: {}".format(datafile))
-    df = pd.read_hdf(datafile, tablename)
-    logger.debug("{} Events in file".format(len(df)))
-    logger.info("merging database")
-    df = combine_data_to_db(rundb, df)
-    # df = df.query("Size > 60")
-    df_list.append(df)
-    labels.append( buildLabel (datafile, pattern, feature, unit))
+    fig = plt.figure()
+    ax = plt.subplot(1,1,1)
 
-fig = plt.figure()
-ax = plt.subplot(1,1,1)
+    feature_name = "ped_std_mean"
+    gain = 257.
 
-feature_name = "ped_std_mean"
-gain = 257.
+    logger.info("binning data")
+    for df, label in zip(df_list, labels):
+        binned = mean_data_binned(df, "fCurrentsMedMean", feature_name, bin_width=1.01)
+        ax.errorbar(binned["bin_center"].values,
+                    binned[feature_name+"_mean"].values/gain,
+                    xerr=0.5,
+                    # yerr=binned[feature_name+"_std"].values/binned[feature_name+"_size"].values,
+                    yerr=binned[feature_name+"_sem"].values/gain,
+                    fmt=",",
+                    label = label,
+                    capsize=1,
+                    )
 
-logger.info("binning data")
-for df, label in zip(df_list, labels):
-    binned = mean_data_binned(df, "fCurrentsMedMean", feature_name, bin_width=1.01)
-    ax.errorbar(binned["bin_center"].values,
-                binned[feature_name+"_mean"].values/gain,
-                xerr=0.5,
-                # yerr=binned[feature_name+"_std"].values/binned[feature_name+"_size"].values,
-                yerr=binned[feature_name+"_sem"].values/gain,
-                fmt=",",
-                label = label,
-                capsize=1,
-                )
+    ax.set_xlabel("Mean current in pixels / $\si{\micro A}$")
+    ax.set_ylabel("Mean pedestal standard deviation / $\mathrm{p.e.}$")
 
-ax.set_xlabel("Mean current in pixels / $\si{\micro A}$")
-ax.set_ylabel("Mean pedestal standard deviation / $\mathrm{p.e.}$")
+    fig.savefig(outputfile)
 
-fig.savefig(outputfile)
-
-#pdftoppm -png -r 600 test.pdf > test.png
+    #pdftoppm -png -r 600 test.pdf > test.png
+if __name__ == '__main__':
+    main()

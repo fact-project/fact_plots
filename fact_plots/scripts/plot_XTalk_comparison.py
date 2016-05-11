@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from docopt import docopt
 import pandas as pd
-import default_plots as dp
-import default_cuts as dc
+from .. import default_plots as dp
+from .. import default_cuts as dp
 import logging
 import gc
 import os
