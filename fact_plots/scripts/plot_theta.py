@@ -7,20 +7,26 @@ Options:
     --tablename=<name>      [default: table]
     --bins=<bins>           number of bins [default: 100]
     --threshold=<threshold> threshold [default: '0.5']
+    --title=<title>         [default: FACT Observations]
 """
 
+import matplotlib
 import matplotlib.pyplot as plt
 from docopt import docopt
 import numpy as np
 import pandas as pd
 import logging
+from matplotlib_hep import histpoints
+import matplotlib.patches as patches
 from fact_plots.utils import li_ma_significance, theta_mm_to_theta_squared_deg
+from IPython import embed
 
 def main():
 
     logger  = logging.getLogger(__name__)
     logging.captureWarnings(True)
     logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.DEBUG)
+    logger.debug(matplotlib.matplotlib_fname())
 
     args = docopt(__doc__)
     path = args["<datafile>"]
