@@ -29,7 +29,8 @@ setup(
         'numexpr',
         'IPython',
         'pytest', # also in  conda
-        # 'gridmap>=0.13.1', install from https://github.com/mackaiver/gridmap'
+        #'matplotlib-hep', install from https://github.com/ibab/matplotlib-hep'
+
     ],
    zip_safe=False,
    entry_points={
