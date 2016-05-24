@@ -4,10 +4,13 @@ Usage:
     plot_theta.py <datafile> <outputfile> [options]
 
 Options:
-    --tablename=<name>      [default: table]
-    --bins=<bins>           number of bins [default: 100]
-    --threshold=<threshold> threshold [default: '0.5']
-    --title=<title>         [default: FACT Observations]
+    --tablename=<name>          tablename [default: table]
+    --bins=<bins>               number of bins [default: 100]
+    --threshold=<threshold>     threshold   [default: 0.5]
+    --title=<title>             title   [default: FACT Observations]
+    --first=<NIGHT>             first night
+    --last=<NIGHT>              last night
+    --theta2-cut=<c>            thetaˆ2 cut [default: 0.05]
 """
 
 import matplotlib
@@ -22,7 +25,6 @@ from fact_plots.utils import li_ma_significance, theta_mm_to_theta_squared_deg
 from IPython import embed
 
 def main():
-
     logger  = logging.getLogger(__name__)
     logging.captureWarnings(True)
     logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.DEBUG)
@@ -35,48 +37,74 @@ def main():
     tablename   = args["--tablename"]
     bins        = int(args["--bins"])
     title       = args["--title"]
-    threshold   = 0.5
 
-    alpha = 1.0
+    first_night = args["--first"]
+    last_night  = args["--last"]
+
+    theta_cut = float(args['--theta2-cut'])
+    prediction_threshold = float(args['--threshold'])
+
+    alpha = 0.2
 
     df = pd.read_hdf(path, key=tablename)
     df.columns = [c.replace(':', '_') for c in df.columns]
 
-    theta_keys = ["signal_theta", "background_theta", "Theta", "Theta_Off_1","Theta_Off_2","Theta_Off_3","Theta_Off_4", "Theta_Off_5"]
+    if first_night:
+        df = df.query('(NIGHT >= {})'.format(first_night)).copy()
+        logger.info('Using only Data begining with night {}'.format(first_night))
 
-    df[theta_keys] = df[theta_keys].apply(theta_mm_to_theta_squared_deg, 0)
-    best_significance = 0
-    best_threshold = 0
-    best_theta_cut = 0
-    for threshold in np.linspace(0.5, 1, 20):
-        df_signal = df.query('(signal_prediction > {})'.format(threshold))
-        df_background = df.query('(background_prediction > {})'.format(threshold))
+    if last_night:
+        df = df.query('(NIGHT <= {})'.format(last_night)).copy()
+        logger.info('Using only Data until night {}'.format(last_night))
 
 
-        signal_theta = df_signal['signal_theta'].values
-        background_theta = df_background['background_theta'].values
-        theta_cuts = np.linspace(0.5, 0.001, 50)
-        for theta_cut in theta_cuts:
-            n_off = len(background_theta[background_theta < theta_cut])
-            n_on =len(signal_theta[signal_theta < theta_cut])
-            significance = li_ma_significance(n_on, n_off, alpha=alpha)
-            if significance > best_significance:
-                best_theta_cut = theta_cut
-                best_significance = significance
-                best_threshold = threshold
+    night_stats = df.NIGHT.describe()
+    logger.debug('Using Nights from {} to {}'.format(int(night_stats['min']), int(night_stats['max'])))
+    period = 'Period: {} to {}'.format(int(night_stats['min']), int(night_stats['max']))
+
+    theta_keys = ["Theta"] + ['Theta_Off_{}'.format(off_position) for off_position in range(1, 6)]
 
 
-    logger.info('Best cut for predictction threshold {} has signifcance: {} with  a theta sqare cut of {}. '.format(best_threshold, best_significance, best_theta_cut))
+    df[theta_keys] = df[theta_keys].apply(theta_mm_to_theta_squared_deg, axis=0)
 
-    # from IPython import embed
-    # embed()
-    df_signal = df.query('(signal_prediction > {})'.format(best_threshold))
-    df_background = df.query('(background_prediction > {})'.format(best_threshold))
-    signal_theta = df_signal['signal_theta'].values
-    background_theta = df_background['background_theta'].values
 
-    excess_events = len(signal_theta) - len(background_theta)
-    background_events = len(background_theta)
+    # best_significance = 0
+    # prediction_threshold = 0
+    # theta_cut = 0
+    # for threshold in np.linspace(0.5, 1, 20):
+    #     df_signal = df.query('(prediction_on > {})'.format(threshold))
+    #     df_background = df.query('(background_prediction > {})'.format(threshold))
+    #
+    #
+    #     signal_theta = df_signal['signal_theta'].values
+    #     background_theta = df_background['background_theta'].values
+    #     theta_cuts = np.linspace(0.5, 0.001, 50)
+    #     for theta_cut in theta_cuts:
+    #         n_off = len(background_theta[background_theta < theta_cut])
+    #         n_on =len(signal_theta[signal_theta < theta_cut])
+    #         significance = li_ma_significance(n_on, n_off, alpha=alpha)
+    #         if significance > best_significance:
+    #             theta_cut = theta_cut
+    #             best_significance = significance
+    #             prediction_threshold = threshold
+
+    theta_on = df['Theta'][df['prediction_on' ] > prediction_threshold]
+    theta_off = pd.Series()
+    for off_position in range(1, 6):
+        mask = df['prediction_off_{}'.format(off_position)] > prediction_threshold
+        theta_off = theta_off.append(df['Theta_Off_{}'.format(off_position)][mask])
+
+    n_on = len(theta_on[theta_on < theta_cut])
+    n_off = len(theta_off[theta_off < theta_cut])
+    logger.info('N_on = {}, N_off = {}'.format(n_on, n_off))
+
+    excess_events = n_on - alpha * n_off
+    significance = li_ma_significance(n_on, n_off, alpha=alpha)
+
+    logger.info(
+        'Chosen cuts for prediction threshold {} has signifcance: {} with  a theta sqare cut of {}.'.format(
+            prediction_threshold, significance, theta_cut
+    ))
 
     theta_max = 0.3
     bins = np.linspace(0, theta_max, bins)
@@ -97,14 +125,14 @@ def main():
     ax = fig.gca()
 
     #Plot the Theta2 Distributions
-    sig_x, sig_y, sig_norm = histpoints(signal_theta, bins=bins, xerr='binwidth', label='On', fmt='none', ecolor='b', capsize=0 )
-    back_x, back_y, back_norm = histpoints(background_theta, bins=bins, xerr='binwidth', label='Off', fmt='none', ecolor='r', capsize=0)
+    sig_x, sig_y, sig_norm = histpoints(theta_on, bins=bins, xerr='binwidth', label='On', fmt='none', ecolor='b', capsize=0)
+    back_x, back_y, back_norm = histpoints(theta_off, bins=bins, xerr='binwidth', label='Off', fmt='none', ecolor='r', capsize=0, weights=alpha * np.ones_like(theta_off))
 
     #Fill area underneeth background
-    ax.fill_between(back_x, back_y, 0, facecolor='grey', alpha=0.2, linewidth=0.0)
+    ax.fill_between(back_x, back_y[1], 0, facecolor='grey', alpha=0.2, linewidth=0.0)
 
     #Mark theta cut with a line0.5*(info_left+info_right),
-    ax.axvline(x=best_theta_cut, linewidth=1, color='k', linestyle='dashed')
+    ax.axvline(x=theta_cut, linewidth=1, color='k', linestyle='dashed')
 
     # embed()
 
@@ -112,13 +140,14 @@ def main():
     p = patches.Rectangle( (info_left, 1.), info_width, info_height, fill=True, transform=ax.transAxes, clip_on=False, facecolor='0.9', edgecolor='black')
     ax.add_patch(p)
 
-    info_text = 'Significance: {:.2f}\n'.format(best_significance)
-    info_text += 'Confidence Cut: {:.2f}, Theta Sqare Cut: {:.2f} \n'.format(best_threshold, best_theta_cut)
-    info_text += '{} excess events, {} background events \n'.format(excess_events, background_events)
-
+    info_text = 'Significance: {:.2f}, Alpha: {:.2f}\n'.format(significance, alpha)
+    if period:
+        info_text = period + ',\n' + info_text
+    info_text += 'Confidence Cut: {:.2f}, Theta Sqare Cut: {:.2f} \n'.format(prediction_threshold, theta_cut)
+    info_text += '{:.2f} excess events, {:.2f} background events \n'.format(excess_events, n_off)
 
     ax.text(0.5*(info_left+info_right), 0.5*(info_top+info_bottom)-0.05, info_text,
-            horizontalalignment='center', verticalalignment='center', fontsize=12, transform=ax.transAxes)
+            horizontalalignment='center', verticalalignment='center', fontsize=10, transform=ax.transAxes)
 
     ax.text(0.5*(info_left+info_right), (info_top), title,
                 bbox={'facecolor':'white', 'pad':10},
