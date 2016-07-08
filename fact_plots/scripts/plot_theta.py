@@ -22,7 +22,12 @@ import logging
 from matplotlib_hep import histpoints
 import matplotlib.patches as patches
 from fact_plots.utils import li_ma_significance, theta_mm_to_theta_squared_deg
+from datetime import datetime
+
 from IPython import embed
+
+def night2datetime(night):
+    return datetime.strptime(str(night),'%Y%m%d')
 
 def main():
     logger  = logging.getLogger(__name__)
@@ -59,8 +64,11 @@ def main():
 
 
     night_stats = df.NIGHT.describe()
-    logger.debug('Using Nights from {} to {}'.format(int(night_stats['min']), int(night_stats['max'])))
-    period = 'Period: {} to {}'.format(int(night_stats['min']), int(night_stats['max']))
+    actual_first_night = night2datetime(int(night_stats['min']))
+    actual_last_night = night2datetime(int(night_stats['max']))
+
+    period = 'Period: {:%Y-%m-%d} to {:%Y-%m-%d}'.format(actual_first_night, actual_last_night)
+    logger.debug('Using Nights from {}'.format(period))
 
     theta_keys = ["Theta"] + ['Theta_Off_{}'.format(off_position) for off_position in range(1, 6)]
 
@@ -87,6 +95,29 @@ def main():
     #             theta_cut = theta_cut
     #             best_significance = significance
     #             prediction_threshold = threshold
+
+    best_significance = 0
+    best_prediction_threshold = 0
+    best_theta_cut = 0
+
+    for threshold in np.linspace(0.5, 1, 20):
+        t_on = df['Theta'][df['prediction_on' ] > threshold]
+        t_off = pd.Series()
+        for off_position in range(1, 6):
+            mask = df['prediction_off_{}'.format(off_position)] > threshold
+            t_off = t_off.append(df['Theta_Off_{}'.format(off_position)][mask])
+            
+        for t_cut in np.linspace(0.5, 0.001, 50):
+            n_on = len(t_on[t_on < t_cut])
+            n_off = len(t_off[t_off < t_cut])
+            significance = li_ma_significance(n_on, n_off, alpha=alpha)
+            if significance > best_significance:
+                best_theta_cut = t_cut
+                best_significance = significance
+                best_prediction_threshold = threshold
+
+    logger.info('Maximum Significance {}, for Theta Cut at {} and confidence cut at {}'.format(best_significance, best_theta_cut, best_prediction_threshold))
+
 
     theta_on = df['Theta'][df['prediction_on' ] > prediction_threshold]
     theta_off = pd.Series()
@@ -126,7 +157,7 @@ def main():
 
     #Plot the Theta2 Distributions
     sig_x, sig_y, sig_norm = histpoints(theta_on, bins=bins, xerr='binwidth', label='On', fmt='none', ecolor='b', capsize=0)
-    back_x, back_y, back_norm = histpoints(theta_off, bins=bins, xerr='binwidth', label='Off', fmt='none', ecolor='r', capsize=0, weights=alpha * np.ones_like(theta_off))
+    back_x, back_y, back_norm = histpoints(theta_off, bins=bins, xerr='binwidth', label='Off', fmt='none', ecolor='r', capsize=0, scale=alpha, yerr='sqrt')
 
     #Fill area underneeth background
     ax.fill_between(back_x, back_y[1], 0, facecolor='grey', alpha=0.2, linewidth=0.0)
