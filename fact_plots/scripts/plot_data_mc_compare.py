@@ -1,23 +1,15 @@
 #!/usr/bin/env python2
-"""Plot Data MonteCarlo comparison plots from HDF5 files
-
-Usage:
-    plot_data_mc_compare.py <outputfile> <datafiles>... [options]
-
-Options:
-    --ignore <keys>         keys to ignore as comma separated list
-    --tablename=<name>      [default: table]
-    --cuts <cuts>           cuts for the pandas data frame as comma separated list
-    --default_cuts <cuts>   choose predefined default cuts as comma separted list e.g. qualitycuts, precuts
-"""
 from __future__ import print_function
 import numpy as np
 import matplotlib
 import datetime
+import click
 # matplotlib.rc_file("./matplotlibrc")
 # matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
+from matplotlib_hep import histpoints
 from matplotlib.backends.backend_pdf import PdfPages
+from cycler import cycler
 from docopt import docopt
 import pandas as pd
 import logging
@@ -27,41 +19,24 @@ import os
 
 from ..default_plots import default_plots
 from ..default_cuts import cuts as default_cuts
+from ..utils import merge_dicts
 
-def merge_dicts(*dict_args):
-    '''
-    Given any number of dicts, shallow copy and merge into a new dict,
-    precedence goes to key value pairs in latter dicts.
-    '''
-    result = {}
-    for dictionary in dict_args:
-        result.update(dictionary)
-    return result
+default_plot_option = dict(
+    # histtype='step',
+    # normed=True,
+    bottom=0,
+    align='left',
+)
 
-# default plotting options for all comparison plots
-def main():
-    default_plot_option = dict(
-        histtype='step',
-        normed=True,
-        bottom=0,
-        align='left',
-    )
+color_cycle = cycler(color=['black', 'r', 'g', 'b'])
 
-    args = docopt(__doc__)
-    logger  = logging.getLogger(__name__)
+logger  = logging.getLogger(__name__)
 
-    logging.captureWarnings(True)
-    logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
+logging.captureWarnings(True)
+logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
 
-    datafiles   = args["<datafiles>"]
-    outputfile  = args["<outputfile>"]
 
-    tablename   = args["--tablename"]
-    ignorekeys  = args["--ignore"]
-
-    cuts            = args["--cuts"]
-    default_cuts    = args["--default_cuts"]
-
+def aggregatePlottingCuts(cuts, default_cuts):
     plotting_cuts = list()
     if cuts:
         print("will use given cuts")
@@ -77,26 +52,47 @@ def main():
         print("using cuts:", plotting_cuts)
         cuts = " & ".join(plotting_cuts)
 
+    return cuts
 
+def loadData(datatupels, cuts):
+    datafiles = []
     df_list = []
-    key_list = []
+    scales = []
     common_keys = None
-    for i, datafile in enumerate(datafiles):
-        logger.info("loading: {}".format(datafile))
+
+    for i, datatupel in enumerate(datatupels):
+        datafile, tablename, scale = datatupel
+
+        datafiles.append(datafile)
+        scales.append(scale)
+
+        logger.info("loading: {}, key={}".format(datafile, tablename))
         df = pd.read_hdf(datafile, tablename)
         logger.debug("{} Events in file".format(len(df)))
         if cuts:
             df = df.query(cuts)
-        df["filename"] = os.path.basename(datafile)[:-4]
+        df["filename"] = os.path.basename(datafile).split(".hdf")[0]
         df_list.append(df)
         if i == 0:
             common_keys = df.keys()
         else:
             common_keys = set(common_keys).intersection(df.keys())
 
+    return df_list, datafiles, scales, sorted(common_keys)
 
-    #Sort the list of keys
-    common_keys = sorted(common_keys)
+# default plotting options for all comparison plots
+@click.command()
+@click.argument('outputfile', type=click.Path(exists=False, dir_okay=True, file_okay=True))
+@click.option('--datatupels', '-d', multiple=True, nargs=3, type=click.Tuple([click.Path(exists=True, dir_okay=True), click.STRING, click.FLOAT]), help='tupels of path to hdf5 file and the concerning table name')
+@click.option('--ignorekeys', '-i', type=click.STRING, default=None, help='comma seperated list of keys to ignore')
+@click.option('--cuts', '-c', type=click.STRING, default=None, help='cuts for the pandas data frame as comma separated list')
+@click.option('--default_cuts', type=click.STRING, default=None, help="choose predefined default cuts as comma separted list e.g. qualitycuts, precuts")
+def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
+    '''Plot Data MonteCarlo comparison plots from HDF5 files'''
+
+    cuts = aggregatePlottingCuts(cuts, default_cuts)
+
+    df_list, datafiles, scales, common_keys = loadData(datatupels, cuts)
 
     if ignorekeys != None:
         common_keys = set(common_keys).difference(ignorekeys)
@@ -110,10 +106,10 @@ def main():
 
             #skip tupples
             if isinstance(df_list[0][key][0], (list, tuple)):
-                logger.info("skipping column{}: cannot interprete content".format(key))
+                logger.info("skipping column {}: cannot interprete content".format(key))
                 continue
 
-            plt.figure()
+            fig = plt.figure()
             plt.title(key)
             plot_option = None
             if key in default_plots:
@@ -149,14 +145,24 @@ def main():
 
                     plot_option = merge_dicts(default_plot_option, plot_option)
 
-                for df in df_list:
+
+                for df, scale, c in zip(df_list, scales, color_cycle()):
                     data = df[key]
 
                     if func:
                         data = func(data)
 
                     try:
-                        plt.hist(data.values, label=df["filename"][0], **plot_option)
+                        # plt.hist(data.values, label=df["filename"].iloc[0], normed=scale, color=c["color"], **plot_option)
+                        ax = fig.gca()
+                        x, y, norm = histpoints(data.values, xerr='binwidth', label=df["filename"].iloc[0],
+                                                fmt='none', capsize=0, normed=scale, ecolor=c["color"], **plot_option)
+                        ax.fill_between(x, y[1], 0, alpha=0.2, linewidth=0.01, step='mid', facecolor=c["color"])
+                        if "log" in plot_option:
+                            if plot_option["log"]:
+                                ax.set_yscale("log", nonposy='clip')
+                        if "range" in plot_option:
+                            ax.set_xlim(plot_option["range"])
 
                     except Exception as inst:
                         print(type(inst))     # the exception instance
@@ -176,7 +182,7 @@ def main():
                 d['Title'] = 'Data MC Comparison plots'
                 d['Author'] = u'Jens Buss'
                 d['Subject'] = 'Comparison'
-                d['Keywords'] = 'Data:{}\nRest:{}\nCuts:{}'.format(datafiles, str(args), str(cuts))
+                d['Keywords'] = 'Data:{}\nCuts:{}'.format(str(", ".join(datafiles)), str(cuts))
                 d['CreationDate'] = datetime.datetime.today()
                 d['ModDate'] = datetime.datetime.today()
 
