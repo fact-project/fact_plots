@@ -23,3 +23,13 @@ def theta_mm_to_theta_squared_deg(theta):
     pixelsize = 9.5 #mm
     fov_per_pixel = 0.11 #degree
     return (theta*(fov_per_pixel/pixelsize))**2
+
+def merge_dicts(*dict_args):
+    '''
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    '''
+    result = {}
+    for dictionary in dict_args:
+        result.update(dictionary)
+    return result
