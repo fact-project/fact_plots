@@ -28,7 +28,7 @@ cuts["precuts"] = [
         "Concentration_onePixel > 0.0325",
         "Concentration_twoPixel > 0.063",
         # "ConcCore > 0",
-        "concCOG > 0.055"
+        "concCOG > 0.055",
 ]
 
 cuts["analysis4_pre"] = [
