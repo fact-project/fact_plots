@@ -104,7 +104,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
     with PdfPages(outputfile) as pdf:
         logger.info("\nList of Keys:")
         for key in common_keys:
-            print(key)
+            logger.info(key)
 
             #skip tupples
             if isinstance(df_list[0][key][0], (list, tuple)):
@@ -122,7 +122,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     continue
 
                 gc.collect()
-                print(default_plot_option)
+                logger.info(default_plot_option)
 
                 xlabel = key
                 func = None
