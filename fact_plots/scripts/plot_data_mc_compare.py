@@ -58,32 +58,34 @@ def loadData(datatupels, cuts):
     datafiles = []
     df_list = []
     scales = []
+    labels = []
     common_keys = None
 
     for i, datatupel in enumerate(datatupels):
-        datafile, tablename, scale = datatupel
+        datafile, tablename, scale, label = datatupel
 
         datafiles.append(datafile)
         scales.append(scale)
+        labels.append(label)
 
         logger.info("loading: {}, key={}".format(datafile, tablename))
         df = pd.read_hdf(datafile, tablename)
+        df["filename"] = os.path.basename(datafile).split(".hdf")[0]
         logger.debug("{} Events in file".format(len(df)))
         if cuts:
             df = df.query(cuts)
-        df["filename"] = os.path.basename(datafile).split(".hdf")[0]
         df_list.append(df)
         if i == 0:
             common_keys = df.keys()
         else:
             common_keys = set(common_keys).intersection(df.keys())
 
-    return df_list, datafiles, scales, sorted(common_keys)
+    return df_list, datafiles, scales, labels, sorted(common_keys)
 
 # default plotting options for all comparison plots
 @click.command()
 @click.argument('outputfile', type=click.Path(exists=False, dir_okay=True, file_okay=True))
-@click.option('--datatupels', '-d', multiple=True, nargs=3, type=click.Tuple([click.Path(exists=True, dir_okay=True), click.STRING, click.FLOAT]), help='tupels of path to hdf5 file and the concerning table name')
+@click.option('--datatupels', '-d', multiple=True, nargs=4, type=click.Tuple([click.Path(exists=True, dir_okay=True), click.STRING, click.FLOAT, click.STRING]), help='tupels of: path to hdf5 file, table name, scale, label')
 @click.option('--ignorekeys', '-i', type=click.STRING, default=None, help='comma seperated list of keys to ignore')
 @click.option('--cuts', '-c', type=click.STRING, default=None, help='cuts for the pandas data frame as comma separated list')
 @click.option('--default_cuts', type=click.STRING, default=None, help="choose predefined default cuts as comma separted list e.g. qualitycuts, precuts")
@@ -92,7 +94,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
 
     cuts = aggregatePlottingCuts(cuts, default_cuts)
 
-    df_list, datafiles, scales, common_keys = loadData(datatupels, cuts)
+    df_list, datafiles, scales, labels, common_keys = loadData(datatupels, cuts)
 
     if ignorekeys != None:
         common_keys = set(common_keys).difference(ignorekeys)
@@ -145,8 +147,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
 
                     plot_option = merge_dicts(default_plot_option, plot_option)
 
-
-                for df, scale, c in zip(df_list, scales, color_cycle()):
+                for df, scale, label, c in zip(df_list, scales, labels, color_cycle()):
                     data = df[key]
 
                     if func:
@@ -155,7 +156,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     try:
                         # plt.hist(data.values, label=df["filename"].iloc[0], normed=scale, color=c["color"], **plot_option)
                         ax = fig.gca()
-                        x, y, norm = histpoints(data.values, xerr='binwidth', label=df["filename"].iloc[0],
+                        x, y, norm = histpoints(data.values, xerr='binwidth', label=label,
                                                 fmt='none', capsize=0, normed=scale, ecolor=c["color"], **plot_option)
                         ax.fill_between(x, y[1], 0, alpha=0.2, linewidth=0.01, step='mid', facecolor=c["color"])
                         if "log" in plot_option:
