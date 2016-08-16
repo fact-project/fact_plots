@@ -18,7 +18,7 @@ import gc
 import os
 
 from ..default_plots import default_plots
-from ..default_cuts import cuts as default_cuts
+from ..default_cuts import cuts as d_cuts
 from ..utils import merge_dicts
 
 default_plot_option = dict(
@@ -46,7 +46,7 @@ def aggregatePlottingCuts(cuts, default_cuts):
         print("will use given default cuts: ", default_cuts)
         list_of_default_cuts = default_cuts.split(",")
         for cut_set in list_of_default_cuts:
-            plotting_cuts.extend(cuts[cut_set])
+            plotting_cuts.extend(d_cuts[cut_set])
 
     if plotting_cuts:
         print("using cuts:", plotting_cuts)
