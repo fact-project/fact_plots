@@ -107,7 +107,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
             logger.info(key)
 
             #skip tupples
-            if isinstance(df_list[0][key][0], (list, tuple)):
+            if isinstance(df_list[0][key].iloc[0], (list, tuple)):
                 logger.info("skipping column {}: cannot interprete content".format(key))
                 continue
 
