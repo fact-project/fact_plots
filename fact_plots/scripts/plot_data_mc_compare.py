@@ -40,17 +40,17 @@ logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(me
 def aggregatePlottingCuts(cuts, default_cuts):
     plotting_cuts = list()
     if cuts:
-        print("will use given cuts")
+        logger.info("will use given cuts")
         plotting_cuts.extend(cuts.split(","))
 
     if default_cuts:
-        print("will use given default cuts: ", default_cuts)
+        logger.info("will use given default cuts: {}".format(default_cuts))
         list_of_default_cuts = default_cuts.split(",")
         for cut_set in list_of_default_cuts:
             plotting_cuts.extend(d_cuts[cut_set])
 
     if plotting_cuts:
-        print("using cuts:", plotting_cuts)
+        logger.info("using cuts:{}".format( plotting_cuts))
         cuts = " & ".join(plotting_cuts)
 
     return cuts
@@ -140,7 +140,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     if func and func.__name__ and not "lambda" in func.__name__:
                         # embed()
                         func_name = str(func.__name__)
-                        print("Function:", func_name+"({})".format(key))
+                        logger.info("Function: {}({})".format(func_name, key))
                         xlabel = func_name+"({})".format(xlabel)
 
                     del plot_option["func"]
@@ -166,10 +166,9 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                         if "range" in plot_option:
                             ax.set_xlim(plot_option["range"])
 
-                    except Exception as inst:
-                        print(type(inst))     # the exception instance
-                        print(inst.args)      # arguments stored in .args
-                        print(inst)
+                    except Exception:
+                        logger.exception("Plotting failed for {} in file {}".format(key, df["filename"]))
+
 
                     plt.xlabel(xlabel)
                     plt.ylabel("Frequency")
