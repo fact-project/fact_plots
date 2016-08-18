@@ -70,7 +70,16 @@ def loadData(datatupels, cuts):
         labels.append(label)
 
         logger.info("loading: {}, key={}".format(datafile, tablename))
-        df = pd.read_hdf(datafile, tablename)
+        df=pd.DataFrame()
+        try:
+            df = pd.read_hdf(datafile, tablename)
+        except KeyError:
+            f = h5py.File(datafile)
+            keys = list(f.keys())
+            logger.error("Key '{}' not in datafile:\n{}\nPossible Keys are:{}".format(tablename, datafile, keys))
+            f.close()
+            exit()
+
         df["filename"] = os.path.basename(datafile).split(".hdf")[0]
         logger.debug("{} Events in file".format(len(df)))
         if cuts:
