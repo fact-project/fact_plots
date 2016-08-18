@@ -79,7 +79,8 @@ def loadData(datatupels, cuts):
             logger.error("Key '{}' not in datafile:\n{}\nPossible Keys are:{}".format(tablename, datafile, keys))
             f.close()
             exit()
-
+        df.replace(np.inf, np.nan, inplace=True)
+        df.dropna(inplace=True)
         df["filename"] = os.path.basename(datafile).split(".hdf")[0]
         logger.debug("{} Events in file".format(len(df)))
         if cuts:
