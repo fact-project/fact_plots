@@ -103,6 +103,18 @@ def mkDirAtDestination(outputfile):
     return path
 
 
+def calcDataRange(df_list, key):
+    min_val = float("inf")
+    max_val = float("-inf")
+    for df in df_list:
+        if df[key].max() > max_val:
+            max_val = df[key].max()
+        if df[key].min() < min_val:
+            min_val = df[key].min()
+    return min_val, max_val
+
+
+
 # default plotting options for all comparison plots
 @click.command()
 @click.argument('outputfile', type=click.Path(exists=False, dir_okay=True, file_okay=True))
@@ -144,6 +156,9 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     plt.close()
                     continue
 
+
+                data_range = calcDataRange(df_list, key)
+
                 gc.collect()
                 logger.info(default_plot_option)
 
@@ -169,6 +184,14 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     del plot_option["xUnit"]
 
                     plot_option = merge_dicts(default_plot_option, plot_option)
+                    try:
+                        if "bins" and "range" in plot_option:
+                            if not plot_option["range"] == None:
+                                plot_option["bins"] = np.linspace(*plot_option["range"], plot_option["bins"])
+                            else:
+                                plot_option["bins"] = np.linspace(*data_range, plot_option["bins"])
+                    except:
+                        embed()
 
                 for df, scale, label, c in zip(df_list, scales, labels, color_cycle()):
                     data = df[key]
