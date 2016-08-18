@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 from __future__ import print_function
 import numpy as np
 import matplotlib
@@ -16,6 +16,7 @@ import logging
 from IPython import embed
 import gc
 import os
+import h5py
 
 from ..default_plots import default_plots
 from ..default_cuts import cuts as d_cuts
