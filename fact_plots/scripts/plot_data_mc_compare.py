@@ -92,6 +92,16 @@ def loadData(datatupels, cuts):
 
     return df_list, datafiles, scales, labels, sorted(common_keys)
 
+
+def mkDirAtDestination(outputfile):
+    fname = os.path.basename(outputfile).split(".")[0]
+    dirname = os.path.dirname(outputfile)
+    path = os.path.join(dirname, fname)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
+
 # default plotting options for all comparison plots
 @click.command()
 @click.argument('outputfile', type=click.Path(exists=False, dir_okay=True, file_okay=True))
@@ -110,6 +120,8 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
         common_keys = set(common_keys).difference(ignorekeys)
         for key in ignorekeys:
             logger.info("skipping column{}: on ignore list".format(key))
+
+    picturePath = mkDirAtDestination(outputfile)
 
     with PdfPages(outputfile) as pdf:
         logger.info("\nList of Keys:")
@@ -183,6 +195,8 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     plt.ylabel("Frequency")
 
                 plt.legend(loc='best')
+
+                plt.savefig(os.path.join(picturePath, key+".png"))
                 # plt.show()
                 pdf.savefig()
 
