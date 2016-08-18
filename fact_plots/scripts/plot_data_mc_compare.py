@@ -123,7 +123,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
 
     picturePath = mkDirAtDestination(outputfile)
 
-    with PdfPages(outputfile) as pdf:
+    with PdfPages(os.path.join(picturePath, os.path.basename(outputfile)) as pdf:
         logger.info("\nList of Keys:")
         for key in common_keys:
             logger.info(key)
