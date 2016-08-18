@@ -202,8 +202,8 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
                     try:
                         # plt.hist(data.values, label=df["filename"].iloc[0], normed=scale, color=c["color"], **plot_option)
                         ax = fig.gca()
-                        ax.grid(True, which="both" )
-                        x, y, norm = histpoints(data.values, xerr='binwidth', label=label,
+                        ax.grid(True)
+                        x, y, norm = histpoints(data.values, xerr='binwidth', yerr="sqrt", label=label,
                                                 fmt='none', capsize=0, normed=scale, ecolor=c["color"], **plot_option)
                         ax.fill_between(x, y[1], 0, alpha=0.2, linewidth=0.01, step='mid', facecolor=c["color"])
                         if "log" in plot_option:
