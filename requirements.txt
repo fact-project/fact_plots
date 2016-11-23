@@ -1,0 +1,13 @@
+numpy
+matplotlib
+pandas
+python-dateutil
+pytz
+tables
+click
+docopt
+datetime
+numexpr
+Python
+pytest
+git+https://github.com/ibab/matplotlib-hep.git#egg=matplotlib-hep
