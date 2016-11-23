@@ -24,12 +24,15 @@ setup(
         'pytz',             # in anaconda
         'tables',           # needs to be installed by pip for some reason
         # 'hdf5',
+        'h5py',
+        'scipy',
         'click',
         'docopt',
         'datetime',
         'numexpr',
         'IPython',
         'pytest', # also in  conda
+        'matplotlib-hep==0.1.0'
         #'matplotlib-hep', install from https://github.com/ibab/matplotlib-hep'
 
     ],
