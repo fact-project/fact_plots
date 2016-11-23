@@ -4,7 +4,7 @@ setup(
     name='fact_plots',
     version='0.0.1',
     description='a collection of plotting scrtipts for data of FACT',
-    url='https://github.com/jebuss/fact_plots',
+    url='https://github.com/fact-project/fact_plots',
     author='Jens Buss',
     author_email='jens.buss@tu-dortmund.de',
     license='BEER',
