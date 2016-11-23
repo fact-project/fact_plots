@@ -10,6 +10,7 @@ setup(
     license='BEER',
     packages=[
         'fact_plots',
+            'fact_plots/scripts',
     ],
     # dependency_links = ['git+https://github.com/mackaiver/gridmap.git#egg=gridmap'],
     package_data={
