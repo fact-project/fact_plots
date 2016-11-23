@@ -10,4 +10,4 @@ datetime
 numexpr
 Python
 pytest
-git+https://github.com/ibab/matplotlib-hep.git#egg=matplotlib-hep
+git+https://github.com/fact-project/matplotlib-hep.git#egg=matplotlib-hep
