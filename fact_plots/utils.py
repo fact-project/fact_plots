@@ -1,28 +1,18 @@
 import numpy as np
+import pandas as pd
+from fact.instrument.camera import camera_distance_mm_to_deg
+from fact.analysis.core import (
+    split_on_off_source_dependent,
+    split_on_off_source_independent,
+    default_theta_off_keys
+    )
 
-def li_ma_significance(N_on, N_off, alpha=0.2):
-    if N_on + N_off == 0:
-        return 0
+default_theta_off_keys_in_mm = tuple('Theta_Off_{}'.format(i) for i in range(1, 6))
 
-    p_on = N_on / (N_on + N_off)
-    p_off = N_off / (N_on + N_off)
-
-    if p_on ==0:
-        return 0
-
-    t1 = N_on * np.log(((1 + alpha) / alpha) * p_on)
-    t2 = N_off * np.log((1 + alpha) * p_off)
-
-    ts = (t1 + t2)
-
-    significance = np.sqrt(ts*2)
-
-    return significance
 
 def theta_mm_to_theta_squared_deg(theta):
-    pixelsize = 9.5 #mm
-    fov_per_pixel = 0.11 #degree
-    return (theta*(fov_per_pixel/pixelsize))**2
+    return (camera_distance_mm_to_deg(theta))**2
+
 
 def merge_dicts(*dict_args):
     '''
