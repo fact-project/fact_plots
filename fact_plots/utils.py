@@ -8,10 +8,6 @@ from fact.analysis.core import (
 default_theta_off_keys_in_mm = tuple('Theta_Off_{}'.format(i) for i in range(1, 6))
 
 
-def theta_mm_to_theta_squared_deg(theta):
-    return (camera_distance_mm_to_deg(theta))**2
-
-
 def merge_dicts(*dict_args):
     '''
     Given any number of dicts, shallow copy and merge into a new dict,
