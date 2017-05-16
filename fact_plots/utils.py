@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 from fact.instrument.camera import camera_distance_mm_to_deg
 from fact.analysis.core import (
     split_on_off_source_dependent,
