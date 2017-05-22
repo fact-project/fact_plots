@@ -14,16 +14,16 @@ import click
 
 columns = [
     'signal_prediction',
-    'Theta',
-    'Theta_Off_1',
-    'Theta_Off_2',
-    'Theta_Off_3',
-    'Theta_Off_4',
-    'Theta_Off_5',
+    'theta',
+    'theta_off_1',
+    'theta_off_2',
+    'theta_off_3',
+    'theta_off_4',
+    'theta_off_5',
 ]
 
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
-$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
+$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{off}} = {n_off}$, $\alpha = {alpha}$
 $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
 
@@ -50,15 +50,15 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
 
     The HDF files are expected to a have a group called 'runs' and a group called 'events'
     The events group has to have the columns:
-        'signal_prediction',
-        'Theta',
-        'Theta_Off_1',
-        'Theta_Off_2',
-        'Theta_Off_3',
-        'Theta_Off_4',
-        'Theta_Off_5',
+        'gamma_prediction',
+        'theta',
+        'theta_off_1',
+        'theta_off_2',
+        'theta_off_3',
+        'theta_off_4',
+        'theta_off_5',
 
-    The 'signal_prediction' column can be added to the data using
+    The 'gamma_prediction' column can be added to the data using
     'klaas_apply_separation_model' for example.
     '''
     theta_cut = np.sqrt(theta2_cut)
@@ -76,18 +76,18 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
     runs = read_h5py(data_path, key='runs')
 
     for i in range(6):
-        col = 'Theta' if i == 0 else 'Theta_Off_{}'.format(i)
+        col = 'theta' if i == 0 else 'theta_off_{}'.format(i)
         events[col + '_deg'] = camera_distance_mm_to_deg(events[col])
 
     if source_dependent:
         on_data, off_data = split_on_off_source_dependent(events, threshold)
-        theta_on = on_data.Theta_deg
-        theta_off = off_data.Theta_deg
+        theta_on = on_data.theta_deg
+        theta_off = off_data.theta_deg
     else:
         selected = events.query('signal_prediction >= {}'.format(threshold))
-        theta_on = selected.Theta_deg
+        theta_on = selected.theta_deg
         theta_off = pd.concat([
-            selected['Theta_Off_{}_deg'.format(i)]
+            selected['theta_off_{}_deg'.format(i)]
             for i in range(1, 6)
         ])
 
@@ -121,7 +121,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
     bin_width = np.diff(bin_edges)
 
     ax.errorbar(bin_center, h_on, yerr=np.sqrt(h_on)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='on')
-    ax.errorbar(bin_center, h_off, yerr=np.sqrt(h_off*alpha)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='off')
+    ax.errorbar(bin_center, h_off, yerr=alpha * np.sqrt(h_off)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='off')
 
     if not source_dependent:
         ax.axvline(theta_cut**2, color='gray', linestyle='--')
