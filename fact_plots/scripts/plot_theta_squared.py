@@ -13,7 +13,7 @@ from fact.instrument import camera_distance_mm_to_deg
 import click
 
 columns = [
-    'signal_prediction',
+    'gamma_prediction',
     'theta',
     'theta_off_1',
     'theta_off_2',
@@ -84,7 +84,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         theta_on = on_data.theta_deg
         theta_off = off_data.theta_deg
     else:
-        selected = events.query('signal_prediction >= {}'.format(threshold))
+        selected = events.query('gamma_prediction >= {}'.format(threshold))
         theta_on = selected.theta_deg
         theta_off = pd.concat([
             selected['theta_off_{}_deg'.format(i)]
@@ -137,7 +137,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
     ax.text(
         0.5, 0.95,
         stats_box_template.format(
-            source=runs.source.loc[0],
+            source=runs.source.iloc[0],
             t_obs=runs.ontime.sum() / 3600,
             n_on=n_on, n_off=n_off, alpha=0.2,
             significance=significance,

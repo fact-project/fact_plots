@@ -1,106 +1,98 @@
-#!/usr/bin/env python2
-"""Plot effective area for a dataset from HDF5 files
-
-Usage:
-    plot_effective_area.py <outputfile> <datafiles>... [options]
-
-Options:
-    --tablename=<name>      [default: table]
-    --cuts <cuts>           cuts for the pandas data frame as comma separated list
-    --default_cuts <cuts>   choose predefined default cuts as comma separted list e.g. qualitycuts, precuts
-    --feature=<name>        feature name of these comparisons [default: crosstalk]
-    --unit=<name>           unit of feature these comparisons [default: %]
-    --pattern <name>        pattern of the feature value string e.g "_xT,_c" [default: "_nsb,_c"]
-"""
-from __future__ import print_function
-import numpy as np
-import matplotlib
-import datetime
-# matplotlib.rc_file("./matplotlibrc")
-# matplotlib.use('Qt4Agg')
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-from docopt import docopt
-import logging
+# coding: utf-8
+from irf.collection_area import collection_area_energy
+from fact.instrument import camera_distance_mm_to_deg
 import pandas as pd
-from .. import default_plots as dp
-from .. import default_cuts as dp
-import gc
-import os
-from cycler import cycler
-from fact_plots.effectiveArea import *
+from fact.io import read_data
+import astropy.units as u
+import matplotlib.pyplot as plt
+import numpy as np
+import h5py
 
-def main():
-    logger  = logging.getLogger(__name__)
-
-    args = docopt(__doc__)
-    logging.captureWarnings(True)
-    logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.DEBUG)
+import click
 
 
+@click.command()
+@click.argument('CORSIKA_HEADERS')
+@click.argument('ANALYSIS_OUTPUT')
+@click.option('-f', '--fraction', type=float, help='Sample fraction for all_events')
+@click.option('-t', '--threshold', type=float, default=[0.8], multiple=True, help='Prediction threshold to use')
+@click.option('-c', '--theta2-cut', type=float, default=[0.03], multiple=True, help='Theta squared cut to use')
+@click.option('--n-bins', type=int, default=20,  help='Number of bins for the area')
+@click.option(
+    '-i',
+    '--impact',
+    default=270.0,
+    show_default=True,
+    help='the maximum impact parameter used for the corsika simulations (in meter) '
+)
+@click.option('-o', '--output', help='Outputfile for the plot')
+def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bins, impact, output):
 
+    all_events = pd.read_hdf(corsika_headers, 'table')
 
-    datafiles    = args["<datafiles>"]
-    outputfile  = args["<outputfile>"]
+    analysed = read_data(analysis_output, key='events')
+    analysed['theta2'] = camera_distance_mm_to_deg(analysed['theta'])**2
 
-    tablename   = args["--tablename"]
+    impact = impact * u.m
 
-    cuts            = args["--cuts"]
-    default_cuts    = args["--default_cuts"]
-    feature         = args["--feature"]
-    unit            = args["--unit"]
-    pattern            = args["--pattern"].split(",")
+    bins = np.logspace(
+        np.log10(all_events.energy.min()),
+        np.log10(all_events.energy.max()),
+        n_bins + 1,
+    )
 
-    data_df_list = []
+    with h5py.File(analysis_output, 'r') as f:
+        source_dependent = 'gamma_prediction_off_1' in f['events'].keys()
 
-    cuts = dc.cuts["ICRC2015_pre_Xtalk"]
-    cuts = " & ".join(cuts)
+    if source_dependent:
+        print('Separation used source dependent features, ignoring theta cut')
+        theta2_cut = np.full_like(threshold, np.inf)
+    else:
+        assert len(theta2_cut) == len(threshold), 'Number of cuts has to be the same for theta and threshold'
 
-    # c_cycle = cycler('color', ['red', 'b', 'black', 'g', 'yellow', 'orange','darkgrey', 'c', 'm'])
-    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-    for datafile in datafiles:
-        print("loading data file")
-        data_df = pd.read_hdf(datafile, tablename)
-        data_df = data_df.query(cuts)
-        data_df_list.append(data_df)
-        # ax.set_prop_cycle(c_cycle)
+    for threshold, theta2_cut in zip(threshold[:], theta2_cut[:]):
+        selected = analysed.query(
+            '(gamma_prediction >= @threshold) & (theta2 <= @theta2_cut)'
+        )
+        # collection_area_energy(all_events, selected, 20, impact)
 
-        logger.info("{} events in File".format(len(data_df)))
-        val = os.path.basename(datafile).split(pattern[0])[-1].split(pattern[1])[0]
-        label= "{} {} {}".format(feature, val, unit)
+        ret = collection_area_energy(
+            all_events, selected, bins, impact, log=False,
+            sample_fraction=fraction,
+        )
+        area, bin_centers, bin_width, lower_conf, upper_conf = ret
 
-        if cuts:
-            query = "numIslands < 6"
-            print(query)
-            data_df = data_df.query(query)
+        label = 'threshold = {}'.format(threshold)
+        if theta2_cut != np.inf:
+            label += r', $\theta^2 <= {}^{{\circ^2}}$'.format(theta2_cut)
 
-        e_mc = data_df["MCorsikaEvtHeader.fTotalEnergy"]
-        effA_result = plot_eff_area(ax[0], e_mc, label=label )
-        ax[0].set_xlabel("$\log_{10} (E_\mathrm{True} / \si{\GeV})$")
-        ax[0].set_ylabel("$\log_{10} (A_\mathrm{eff} / \si{\meter}^2)$")
-        # ax.set_ylim([2e2,2e5])
+        plt.errorbar(
+            bin_centers,
+            area.value,
+            xerr=bin_width/2,
+            yerr=[
+                (area - lower_conf).value,
+                (upper_conf - area).value
+            ],
+            linestyle='',
+            label=label
+        )
 
-        plot_nTriggers(ax[1], effA_result, label=label )
+    plt.legend()
+    plt.xlabel(r'$\log_{10}(E \,\,/\,\, \mathrm{GeV})$')
+    plt.ylabel(r'$A_\mathrm{eff} \,\,/\,\, \mathrm{m}^2$')
 
-    fig.subplots_adjust(hspace=0.06)
-    ax[0].legend(loc = 'lower right')
-    ax[1].legend()
+    plt.yscale('log')
+    plt.xscale('log')
 
-    # plt.show()
-    fig.savefig(outputfile)
+    # plt.xlim(1e2, 1e5)
 
+    plt.tight_layout()
+    if output is not None:
+        plt.savefig(output, dpi=300)
+    else:
+        plt.show()
 
-    fig = plt.figure()
-    for data_df in data_df_list:
-        val = os.path.basename(datafile).split(pattern[0])[-1].split(pattern[1])[0]
-        label= "{} {} {}".format(feature, val, unit)
-        hist, edges, patches = plt.hist(np.log10(data_df["MCorsikaEvtHeader.fTotalEnergy"]), log=True, bins=20, label=label, alpha=0.5, histtype="step")
-        xy  = patches[0].get_xy()
-        xy[:, 1][xy[:, 1] == 0] = 0.1
-        patches[0].set_xy(xy)
-
-    fig.get_axes()[0].legend()
-    fig.savefig("E_True"+outputfile)
 
 if __name__ == '__main__':
     main()
