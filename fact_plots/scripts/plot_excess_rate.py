@@ -4,6 +4,7 @@ from fact.io import read_h5py
 from fact.instrument import camera_distance_mm_to_deg
 import pandas as pd
 from dateutil.parser import parse
+import numpy as np
 
 import h5py
 import matplotlib.pyplot as plt
@@ -12,12 +13,12 @@ import click
 
 columns = [
     'gamma_prediction',
-    'theta',
-    'theta_off_1',
-    'theta_off_2',
-    'theta_off_3',
-    'theta_off_4',
-    'theta_off_5',
+    'theta_deg',
+    'theta_deg_off_1',
+    'theta_deg_off_2',
+    'theta_deg_off_3',
+    'theta_deg_off_4',
+    'theta_deg_off_5',
     'run_id',
     'night',
 ]
@@ -40,12 +41,12 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, outp
     The HDF files are expected to a have a group called 'runs' and a group called 'events'
     The events group has to have the columns:
         'gamma_prediction',
-        'theta',
-        'theta_off_1',
-        'theta_off_2',
-        'theta_off_3',
-        'theta_off_4',
-        'theta_off_5',
+        'theta_deg',
+        'theta_deg_off_1',
+        'theta_deg_off_2',
+        'theta_deg_off_3',
+        'theta_deg_off_4',
+        'theta_deg_off_5',
         'run_id' and
         'night'.
 
@@ -76,11 +77,6 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, outp
     if end:
         end = parse(end)
         runs = runs.query('run_stop <= @end')
-
-    for i in range(6):
-        col = 'theta' if i == 0 else 'theta_off_{}'.format(i)
-        events[col + '_deg'] = camera_distance_mm_to_deg(events[col])
-
 
     if source_dependent:
         summary = analysis.calc_run_summary_source_dependent(
