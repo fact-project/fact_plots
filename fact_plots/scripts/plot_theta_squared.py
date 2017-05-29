@@ -24,7 +24,7 @@ columns = [
 
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
 $N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
-$S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
+$N_\mathrm{Exc} = {n_excess:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
 
 
@@ -117,11 +117,27 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         color='lightgray',
     )
 
-    bin_center = bin_edges[1:] - np.diff(bin_edges)* 0.5
+    bin_center = bin_edges[1:] - np.diff(bin_edges) * 0.5
     bin_width = np.diff(bin_edges)
 
-    ax.errorbar(bin_center, h_on, yerr=np.sqrt(h_on)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='on')
-    ax.errorbar(bin_center, h_off, yerr=np.sqrt(h_off*alpha)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='off')
+    ax.errorbar(
+        bin_center,
+        h_on,
+        yerr=np.sqrt(h_on) / 2,
+        xerr=bin_width / 2,
+        elinewidth=1,
+        fmt='none',
+        label='on',
+    )
+    ax.errorbar(
+        bin_center,
+        h_off,
+        yerr=np.sqrt(h_off * alpha) / 2,
+        xerr=bin_width / 2,
+        elinewidth=1,
+        fmt='none',
+        label='off',
+    )
 
     if not source_dependent:
         ax.axvline(theta_cut**2, color='gray', linestyle='--')
@@ -139,7 +155,8 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         stats_box_template.format(
             source=runs.source.loc[0],
             t_obs=runs.ontime.sum() / 3600,
-            n_on=n_on, n_off=n_off, alpha=0.2,
+            n_on=n_on, n_off=n_off, alpha=alpha,
+            n_excess=n_on - alpha * n_off,
             significance=significance,
         ),
         transform=ax.transAxes,
