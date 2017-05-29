@@ -13,17 +13,17 @@ from fact.instrument import camera_distance_mm_to_deg
 import click
 
 columns = [
-    'signal_prediction',
-    'Theta',
-    'Theta_Off_1',
-    'Theta_Off_2',
-    'Theta_Off_3',
-    'Theta_Off_4',
-    'Theta_Off_5',
+    'gamma_prediction',
+    'theta_deg',
+    'theta_deg_off_1',
+    'theta_deg_off_2',
+    'theta_deg_off_3',
+    'theta_deg_off_4',
+    'theta_deg_off_5',
 ]
 
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
-$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
+$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{off}} = {n_off}$, $\alpha = {alpha}$
 $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
 
@@ -50,44 +50,40 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
 
     The HDF files are expected to a have a group called 'runs' and a group called 'events'
     The events group has to have the columns:
-        'signal_prediction',
-        'Theta',
-        'Theta_Off_1',
-        'Theta_Off_2',
-        'Theta_Off_3',
-        'Theta_Off_4',
-        'Theta_Off_5',
+        'gamma_prediction',
+        'theta',
+        'theta_deg_off_1',
+        'theta_deg_off_2',
+        'theta_deg_off_3',
+        'theta_deg_off_4',
+        'theta_deg_off_5',
 
-    The 'signal_prediction' column can be added to the data using
+    The 'gamma_prediction' column can be added to the data using
     'klaas_apply_separation_model' for example.
     '''
     theta_cut = np.sqrt(theta2_cut)
 
     with h5py.File(data_path, 'r') as f:
-        source_dependent = 'background_prediction_1' in f[key].keys()
+        source_dependent = 'gamma_prediction_off_1' in f[key].keys()
 
     if source_dependent:
         print('Separation was using source dependent features')
-        columns.extend('background_prediction_' + str(i) for i in range(1, 6))
+        columns.extend('gamma_prediction_off_' + str(i) for i in range(1, 6))
         theta_cut = np.inf
         theta2_cut = np.inf
 
     events = read_h5py(data_path, key='events', columns=columns)
     runs = read_h5py(data_path, key='runs')
 
-    for i in range(6):
-        col = 'Theta' if i == 0 else 'Theta_Off_{}'.format(i)
-        events[col + '_deg'] = camera_distance_mm_to_deg(events[col])
-
     if source_dependent:
         on_data, off_data = split_on_off_source_dependent(events, threshold)
-        theta_on = on_data.Theta_deg
-        theta_off = off_data.Theta_deg
+        theta_on = on_data.theta_deg
+        theta_off = off_data.theta_deg
     else:
-        selected = events.query('signal_prediction >= {}'.format(threshold))
-        theta_on = selected.Theta_deg
+        selected = events.query('gamma_prediction >= {}'.format(threshold))
+        theta_on = selected.theta_deg
         theta_off = pd.concat([
-            selected['Theta_Off_{}_deg'.format(i)]
+            selected['theta_deg_off_{}'.format(i)]
             for i in range(1, 6)
         ])
 
@@ -121,7 +117,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
     bin_width = np.diff(bin_edges)
 
     ax.errorbar(bin_center, h_on, yerr=np.sqrt(h_on)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='on')
-    ax.errorbar(bin_center, h_off, yerr=np.sqrt(h_off*alpha)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='off')
+    ax.errorbar(bin_center, h_off, yerr=alpha * np.sqrt(h_off)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='off')
 
     if not source_dependent:
         ax.axvline(theta_cut**2, color='gray', linestyle='--')
@@ -137,7 +133,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
     ax.text(
         0.5, 0.95,
         stats_box_template.format(
-            source=runs.source.loc[0],
+            source=runs.source.iloc[0],
             t_obs=runs.ontime.sum() / 3600,
             n_on=n_on, n_off=n_off, alpha=0.2,
             significance=significance,
