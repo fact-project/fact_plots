@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+from dateutil.parser import parse as parse_date
 
 from fact.io import read_h5py
 from fact.analysis import (
@@ -18,6 +19,7 @@ columns = [
     'theta_deg_off_3',
     'theta_deg_off_4',
     'theta_deg_off_5',
+    'unix_time_utc',
 ]
 
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
@@ -33,8 +35,10 @@ $N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} 
 @click.option('--key', help='Key for the hdf5 group', default='events')
 @click.option('--bins', help='Number of bins in the histogram', default=40, show_default=True)
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
+@click.option('--start', help='First timestamp to consider', type=parse_date)
+@click.option('--end', help='last timestamp to consider', type=parse_date)
 @click.option('-o', '--output', help='(optional) Output file for the plot')
-def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
+def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output):
     '''
     Given the DATA_PATH to a data hdf5 file (e.g. the output of ERNAs gather scripts)
     this script will create the infamous theta square plot.
@@ -71,7 +75,20 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         theta2_cut = np.inf
 
     events = read_h5py(data_path, key='events', columns=columns)
+    events['timestamp'] = pd.to_datetime(
+        events['unix_time_utc_0'] * 1e6 + events['unix_time_utc_1'],
+        unit='us',
+    )
     runs = read_h5py(data_path, key='runs')
+    runs['run_start'] = pd.to_datetime(runs['run_start'])
+    runs['run_stop'] = pd.to_datetime(runs['run_stop'])
+
+    if start is not None:
+        events = events.query('timestamp >= @start')
+        runs = runs.query('run_start >= @start')
+    if end is not None:
+        events = events.query('timestamp <= @end')
+        runs = runs.query('run_stop <= @end')
 
     if source_dependent:
         on_data, off_data = split_on_off_source_dependent(events, threshold)
