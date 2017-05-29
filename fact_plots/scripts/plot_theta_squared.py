@@ -119,8 +119,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         h_on,
         yerr=np.sqrt(h_on) / 2,
         xerr=bin_width / 2,
-        elinewidth=1,
-        fmt='none',
+        linestyle='',
         label='On',
     )
     ax.errorbar(
@@ -128,8 +127,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         h_off,
         yerr=alpha * np.sqrt(h_off) / 2,
         xerr=bin_width / 2,
-        elinewidth=1,
-        fmt='none',
+        linestyle='',
         label='Off',
     )
 
