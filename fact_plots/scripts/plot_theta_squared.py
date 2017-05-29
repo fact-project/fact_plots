@@ -6,10 +6,8 @@ import h5py
 from fact.io import read_h5py
 from fact.analysis import (
     li_ma_significance,
-    split_on_off_source_independent,
     split_on_off_source_dependent,
 )
-from fact.instrument import camera_distance_mm_to_deg
 import click
 
 columns = [
@@ -24,7 +22,7 @@ columns = [
 
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
 $N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
-$N_\mathrm{{Exc}} = {n_excess:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
+$N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
 
 
@@ -153,6 +151,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
             t_obs=runs.ontime.sum() / 3600,
             n_on=n_on, n_off=n_off, alpha=alpha,
             n_excess=n_on - alpha * n_off,
+            n_excess_err=np.sqrt(n_on + alpha**2 * n_off),
             significance=significance,
         ),
         transform=ax.transAxes,
