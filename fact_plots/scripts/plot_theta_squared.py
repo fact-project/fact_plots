@@ -2,14 +2,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+from dateutil.parser import parse as parse_date
 
 from fact.io import read_h5py
 from fact.analysis import (
     li_ma_significance,
-    split_on_off_source_independent,
     split_on_off_source_dependent,
 )
-from fact.instrument import camera_distance_mm_to_deg
 import click
 
 columns = [
@@ -20,11 +19,12 @@ columns = [
     'theta_deg_off_3',
     'theta_deg_off_4',
     'theta_deg_off_5',
+    'unix_time_utc',
 ]
 
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
-$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{off}} = {n_off}$, $\alpha = {alpha}$
-$S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
+$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
+$N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
 
 
@@ -35,8 +35,10 @@ $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 @click.option('--key', help='Key for the hdf5 group', default='events')
 @click.option('--bins', help='Number of bins in the histogram', default=40, show_default=True)
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
+@click.option('--start', help='First timestamp to consider', type=parse_date)
+@click.option('--end', help='last timestamp to consider', type=parse_date)
 @click.option('-o', '--output', help='(optional) Output file for the plot')
-def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
+def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output):
     '''
     Given the DATA_PATH to a data hdf5 file (e.g. the output of ERNAs gather scripts)
     this script will create the infamous theta square plot.
@@ -73,7 +75,20 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         theta2_cut = np.inf
 
     events = read_h5py(data_path, key='events', columns=columns)
+    events['timestamp'] = pd.to_datetime(
+        events['unix_time_utc_0'] * 1e6 + events['unix_time_utc_1'],
+        unit='us',
+    )
     runs = read_h5py(data_path, key='runs')
+    runs['run_start'] = pd.to_datetime(runs['run_start'])
+    runs['run_stop'] = pd.to_datetime(runs['run_stop'])
+
+    if start is not None:
+        events = events.query('timestamp >= @start')
+        runs = runs.query('run_start >= @start')
+    if end is not None:
+        events = events.query('timestamp <= @end')
+        runs = runs.query('run_stop <= @end')
 
     if source_dependent:
         on_data, off_data = split_on_off_source_dependent(events, threshold)
@@ -113,11 +128,25 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         color='lightgray',
     )
 
-    bin_center = bin_edges[1:] - np.diff(bin_edges)* 0.5
+    bin_center = bin_edges[1:] - np.diff(bin_edges) * 0.5
     bin_width = np.diff(bin_edges)
 
-    ax.errorbar(bin_center, h_on, yerr=np.sqrt(h_on)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='on')
-    ax.errorbar(bin_center, h_off, yerr=alpha * np.sqrt(h_off)/2, xerr=bin_width/2, elinewidth=1, fmt='none', label='off')
+    ax.errorbar(
+        bin_center,
+        h_on,
+        yerr=np.sqrt(h_on) / 2,
+        xerr=bin_width / 2,
+        linestyle='',
+        label='On',
+    )
+    ax.errorbar(
+        bin_center,
+        h_off,
+        yerr=alpha * np.sqrt(h_off) / 2,
+        xerr=bin_width / 2,
+        linestyle='',
+        label='Off',
+    )
 
     if not source_dependent:
         ax.axvline(theta_cut**2, color='gray', linestyle='--')
@@ -135,7 +164,9 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, output):
         stats_box_template.format(
             source=runs.source.iloc[0],
             t_obs=runs.ontime.sum() / 3600,
-            n_on=n_on, n_off=n_off, alpha=0.2,
+            n_on=n_on, n_off=n_off, alpha=alpha,
+            n_excess=n_on - alpha * n_off,
+            n_excess_err=np.sqrt(n_on + alpha**2 * n_off),
             significance=significance,
         ),
         transform=ax.transAxes,
