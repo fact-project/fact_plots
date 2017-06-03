@@ -40,6 +40,7 @@ setup(
             'fact_plot_theta_squared = fact_plots.scripts.plot_theta_squared:main',
             'fact_plot_energy_migration = fact_plots.scripts.plot_energy_migration:main',
             'fact_plot_bias_resolution = fact_plots.scripts.plot_bias_resolution:main',
+            'fact_plot_angular_resolution = fact_plots.scripts.plot_angular_resolution:main',
         ],
     }
 )

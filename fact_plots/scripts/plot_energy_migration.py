@@ -3,6 +3,19 @@ import numpy as np
 from fact.io import read_h5py
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import yaml
+
+from ..plotting import add_preliminary
+
+plot_config = {
+    'cmap': None,
+    'logz': True,
+    'xlabel': r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$',
+    'ylabel': r'$\log_{10}(E_\mathrm{est} \,\, / \,\, \mathrm{GeV})$',
+    'preliminary_position': 'lower right',
+    'preliminary_size': 20,
+    'preliminary_color': 'lightgray',
+}
 
 
 @click.command()
@@ -14,10 +27,10 @@ from matplotlib.colors import LogNorm
 @click.option('--n-bins', default=100, type=int)
 @click.option('--threshold', type=float)
 @click.option('--theta2-cut', type=float)
-@click.option('--logz', is_flag=True, help='Use a logarithmic color scale')
-@click.option('--cmap', help='Matplotlib colormap to use')
+@click.option('--preliminary', is_flag=True, help='add preliminary')
+@click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
-def main(gamma_path, std, n_bins, threshold, theta2_cut, logz, cmap, output):
+def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, output):
 
     df = read_h5py(
         gamma_path,
@@ -29,6 +42,10 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, logz, cmap, output):
             'theta_deg'
         ],
     )
+
+    if config:
+        with open(config) as f:
+            plot_config.update(yaml.safe_load(f))
 
     if threshold:
         df = df.query('gamma_prediction >= @threshold').copy()
@@ -54,14 +71,22 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, logz, cmap, output):
         np.log10(df.gamma_energy_prediction.values),
         bins=n_bins,
         range=[limits, limits],
-        norm=LogNorm() if logz else None,
-        cmap=cmap,
+        norm=LogNorm() if plot_config['logz'] else None,
+        cmap=plot_config['cmap'],
     )
+
+    if preliminary:
+        add_preliminary(
+            plot_config['preliminary_position'],
+            size=plot_config['preliminary_size'],
+            color=plot_config['preliminary_color'],
+            ax=ax,
+        )
 
     ax.set_aspect(1)
 
-    ax.set_xlabel(r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$')
-    ax.set_ylabel(r'$\log_{10}(E_\mathrm{est} \,\, / \,\, \mathrm{GeV})$')
+    ax.set_xlabel(plot_config['xlabel'])
+    ax.set_ylabel(plot_config['ylabel'])
 
     fig.tight_layout()
 

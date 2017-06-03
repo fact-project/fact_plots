@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+import yaml
 from dateutil.parser import parse as parse_date
 
 from fact.io import read_h5py
@@ -10,6 +11,15 @@ from fact.analysis import (
     split_on_off_source_dependent,
 )
 import click
+
+from ..plotting import add_preliminary
+
+plot_config = {
+    'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
+    'preliminary_position': 'right',
+    'preliminary_size': 20,
+    'preliminary_color': 'lightgray',
+}
 
 columns = [
     'gamma_prediction',
@@ -22,10 +32,16 @@ columns = [
     'unix_time_utc',
 ]
 
+print(plt.rcParams['text.usetex'])
+tex = plt.rcParams['text.usetex'] or (plt.get_backend() == 'pgf')
+
 stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
 $N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
 $N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
+
+if tex:
+    stats_box_template = stats_box_template.replace('&', '\&')
 
 
 @click.command()
@@ -37,8 +53,10 @@ $N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} 
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
 @click.option('--start', help='First timestamp to consider', type=parse_date)
 @click.option('--end', help='last timestamp to consider', type=parse_date)
+@click.option('--preliminary', is_flag=True, help='Add preliminary')
+@click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output', help='(optional) Output file for the plot')
-def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output):
+def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, preliminary, config, output):
     '''
     Given the DATA_PATH to a data hdf5 file (e.g. the output of ERNAs gather scripts)
     this script will create the infamous theta square plot.
@@ -63,6 +81,10 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
     The 'gamma_prediction' column can be added to the data using
     'klaas_apply_separation_model' for example.
     '''
+    if config:
+        with open(config) as f:
+            plot_config.update(yaml.safe_load(f))
+
     theta_cut = np.sqrt(theta2_cut)
 
     with h5py.File(data_path, 'r') as f:
@@ -111,6 +133,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
         ]
     else:
         limits = [0, 0.3]
+
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -175,7 +198,16 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
         ha='center',
     )
 
-    ax.set_xlabel(r'$(\theta / {}^\circ )^2$')
+    if preliminary:
+        add_preliminary(
+            plot_config['preliminary_position'],
+            size=plot_config['preliminary_size'],
+            color=plot_config['preliminary_color'],
+            ax=ax,
+        )
+
+    ax.set_xlim(*limits)
+    ax.set_xlabel(plot_config['xlabel'])
     ax.legend()
     fig.tight_layout()
 

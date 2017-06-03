@@ -9,7 +9,8 @@ import yaml
 
 plot_config = {
     'xlabel': r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$',
-    'preliminary_position': 'right',
+    'ylabel': r'$\theta_{0.68} \,\, / \,\, ^\circ$',
+    'preliminary_position': 'upper left',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
 }
@@ -23,11 +24,10 @@ plot_config = {
 )
 @click.option('--n-bins', default=20, type=int)
 @click.option('--threshold', type=float)
-@click.option('--theta2-cut', type=float)
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
 @click.option('--preliminary', is_flag=True, help='add preliminary')
-def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, preliminary):
+def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
     if config:
         with open(config) as f:
             plot_config.update(yaml.safe_load(f))
@@ -36,8 +36,8 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
         gamma_path,
         key='events',
         columns=[
-            'gamma_energy_prediction',
             'corsika_evt_header_total_energy',
+            'gamma_energy_prediction',
             'gamma_prediction',
             'theta_deg'
         ],
@@ -45,8 +45,6 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
 
     if threshold:
         df = df.query('gamma_prediction >= @threshold').copy()
-    if theta2_cut:
-        df = df.query('theta_deg**2 <= @theta2_cut').copy()
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -60,9 +58,9 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
             ax=ax,
         )
 
-    plot_bias_resolution(df, n_bins=n_bins, std=std, ax=ax)
-
+    plot_angular_resolution(df, n_bins=n_bins, ax=ax)
     ax.set_xlabel(plot_config['xlabel'])
+    ax.set_ylabel(plot_config['ylabel'])
 
     fig.tight_layout()
 
@@ -72,11 +70,11 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
         plt.show()
 
 
-def plot_bias_resolution(
+def plot_angular_resolution(
         df,
         n_bins=10,
         ax=None,
-        prediction_key='gamma_energy_prediction',
+        theta_key='theta_deg',
         std=False,
         true_energy_key='corsika_evt_header_total_energy',
         ):
@@ -90,46 +88,36 @@ def plot_bias_resolution(
     )
 
     df['bin'] = np.digitize(df[true_energy_key], bins)
-    df['rel_error'] = (df[prediction_key] - df[true_energy_key]) / df[true_energy_key]
 
     binned = pd.DataFrame(index=np.arange(1, len(bins)))
     binned['center'] = 0.5 * (bins[:-1] + bins[1:])
     binned['width'] = np.diff(bins)
 
     grouped = df.groupby('bin')
-    binned['bias'] = grouped['rel_error'].mean()
-    binned['bias_median'] = grouped['rel_error'].median()
-    binned['lower_sigma'] = grouped['rel_error'].agg(lambda s: np.percentile(s, 15))
-    binned['upper_sigma'] = grouped['rel_error'].agg(lambda s: np.percentile(s, 85))
-    binned['resolution_quantiles'] = (binned.upper_sigma - binned.lower_sigma) / 2
-    binned['resolution'] = grouped['rel_error'].std()
+
+    values = []
+    for i in range(100):
+        sampled = df.sample(len(df), replace=True).groupby('bin')
+        resolution = np.full(n_bins, np.nan)
+        s = sampled[theta_key].agg(lambda s: np.percentile(s.values, 68))
+
+        resolution[s.index.values - 1] = s.values
+        values.append(resolution)
+
+    binned['angular_resolution'] = np.nanmean(values, axis=0)
+    binned['angular_resolution_err'] = np.nanstd(values, axis=0)
+    binned['size'] = grouped.size()
+
+    binned = binned.query('size > 200')
 
     ax.errorbar(
         binned['center'],
-        binned['bias'],
+        binned['angular_resolution'],
         xerr=0.5 * binned['width'],
-        label='Bias',
+        yerr=binned['angular_resolution_err'],
         linestyle='',
     )
 
-    if std is False:
-        ax.errorbar(
-            binned['center'],
-            binned['resolution_quantiles'],
-            xerr=0.5 * binned['width'],
-            label='Resolution',
-            linestyle='',
-        )
-    else:
-        ax.errorbar(
-            binned['center'],
-            binned['resolution'],
-            xerr=0.5 * binned['width'],
-            label='Resolution',
-            linestyle='',
-        )
-
-    ax.legend()
     ax.set_xscale('log')
 
     return ax
