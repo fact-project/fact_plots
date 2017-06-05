@@ -22,7 +22,6 @@ plot_config = {
 }
 
 columns = [
-    'gamma_prediction',
     'theta_deg',
     'theta_deg_off_1',
     'theta_deg_off_2',
@@ -70,7 +69,6 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
 
     The HDF files are expected to a have a group called 'runs' and a group called 'events'
     The events group has to have the columns:
-        'gamma_prediction',
         'theta',
         'theta_deg_off_1',
         'theta_deg_off_2',
@@ -78,6 +76,8 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
         'theta_deg_off_4',
         'theta_deg_off_5',
 
+    If a prediction threshold is to be used, also 'gamma_prediction',
+    must be in the group.
     The 'gamma_prediction' column can be added to the data using
     'klaas_apply_separation_model' for example.
     '''
@@ -89,6 +89,9 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
 
     with h5py.File(data_path, 'r') as f:
         source_dependent = 'gamma_prediction_off_1' in f[key].keys()
+
+    if threshold > 0.0 or source_dependent:
+        columns.append('gamma_prediction')
 
     if source_dependent:
         print('Separation was using source dependent features')
@@ -117,7 +120,10 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
         theta_on = on_data.theta_deg
         theta_off = off_data.theta_deg
     else:
-        selected = events.query('gamma_prediction >= {}'.format(threshold))
+        if threshold > 0:
+            selected = events.query('gamma_prediction >= {}'.format(threshold))
+        else:
+            selected = events
         theta_on = selected.theta_deg
         theta_off = pd.concat([
             selected['theta_deg_off_{}'.format(i)]
