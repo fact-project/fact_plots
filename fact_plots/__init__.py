@@ -1,5 +1,3 @@
-from . import effectiveArea
-from . import utils
-from . import default_plots
-from . import std_plots
-from . import plotting
+from .plotting import add_preliminary
+
+__all__ = ['add_preliminary']
