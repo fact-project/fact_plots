@@ -66,7 +66,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
 
     limits = np.log10([e_min, e_max])
 
-    ax.hist2d(
+    hist, xedges, yedges, plot = ax.hist2d(
         np.log10(df.corsika_evt_header_total_energy.values),
         np.log10(df.gamma_energy_prediction.values),
         bins=n_bins,
@@ -74,6 +74,8 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
         norm=LogNorm() if plot_config['logz'] else None,
         cmap=plot_config['cmap'],
     )
+
+    fig.colorbar(plot, ax=ax)
 
     if preliminary:
         add_preliminary(
