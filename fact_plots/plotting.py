@@ -40,6 +40,7 @@ def add_preliminary(
         color=color,
         transform=ax.transAxes,
         weight='bold',
+        zorder=-1,
     )
 
 
