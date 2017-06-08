@@ -215,7 +215,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     ax.set_xlim(*limits)
     ax.set_xlabel(plot_config['xlabel'])
     ax.legend()
-    fig.tight_layout()
+    fig.tight_layout(pad=0)
 
     if output:
         fig.savefig(output, dpi=300)

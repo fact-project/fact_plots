@@ -62,7 +62,7 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
     ax.set_xlabel(plot_config['xlabel'])
     ax.set_ylabel(plot_config['ylabel'])
 
-    fig.tight_layout()
+    fig.tight_layout(pad=0)
 
     if output:
         fig.savefig(output, dpi=300)

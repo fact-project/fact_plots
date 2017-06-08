@@ -64,7 +64,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
 
     ax.set_xlabel(plot_config['xlabel'])
 
-    fig.tight_layout()
+    fig.tight_layout(pad=0)
 
     if output:
         fig.savefig(output, dpi=300)

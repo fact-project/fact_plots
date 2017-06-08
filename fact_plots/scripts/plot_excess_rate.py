@@ -120,6 +120,8 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
             ax=ax_exc,
         )
 
+    plt.tight_layout(pad=0)
+
     if output:
         plt.savefig(output, dpi=300)
     else:

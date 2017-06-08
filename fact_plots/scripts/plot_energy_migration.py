@@ -3,6 +3,7 @@ import numpy as np
 from fact.io import read_h5py
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import yaml
 
 from ..plotting import add_preliminary
@@ -54,6 +55,8 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.025)
 
     e_min = min(
         df.gamma_energy_prediction.min(),
@@ -75,7 +78,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
         cmap=plot_config['cmap'],
     )
 
-    fig.colorbar(plot, ax=ax)
+    fig.colorbar(plot, cax=cax)
 
     if preliminary:
         add_preliminary(
@@ -90,7 +93,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
     ax.set_xlabel(plot_config['xlabel'])
     ax.set_ylabel(plot_config['ylabel'])
 
-    fig.tight_layout()
+    fig.tight_layout(pad=0)
 
     if output:
         fig.savefig(output, dpi=300)

@@ -109,7 +109,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
     # plt.xlim(1e2, 1e5)
 
-    plt.tight_layout()
+    plt.tight_layout(pad=0)
     if output is not None:
         plt.savefig(output, dpi=300)
     else:
