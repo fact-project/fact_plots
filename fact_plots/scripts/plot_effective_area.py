@@ -79,7 +79,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
         label = r'$\mathtt{{gamma\_prediction}} \geq {}$'.format(threshold)
         if theta2_cut != np.inf:
-            label += r', $\theta^2 \leq {:.3g}^{{\circ^2}}$'.format(theta2_cut)
+            label += r', $\theta^2 \leq {:.3g}\,\mathrm{{deg}}^2$'.format(theta2_cut)
 
         plt.errorbar(
             bin_centers,

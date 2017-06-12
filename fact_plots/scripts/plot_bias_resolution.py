@@ -4,12 +4,13 @@ import numpy as np
 from fact.io import read_h5py
 from ..plotting import add_preliminary
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import yaml
 
 
 plot_config = {
     'xlabel': r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$',
-    'preliminary_position': 'right',
+    'preliminary_position': 'upper right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
 }
@@ -60,9 +61,14 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
             ax=ax,
         )
 
-    plot_bias_resolution(df, n_bins=n_bins, std=std, ax=ax)
+    ax_bias, ax_res = plot_bias_resolution(df, n_bins=n_bins, std=std, ax=ax)
 
-    ax.set_xlabel(plot_config['xlabel'])
+    ax_bias.set_xlabel(plot_config['xlabel'])
+
+    ax_bias.set_ylabel('Bias', color='C0')
+    ax_res.set_ylabel('Resolution', color='C1')
+
+    ax_res.set_ylim(*ax_bias.get_ylim())
 
     fig.tight_layout(pad=0)
 
@@ -81,7 +87,8 @@ def plot_bias_resolution(
         true_energy_key='corsika_evt_header_total_energy',
         ):
 
-    ax = ax or plt.gca()
+    ax_bias = ax or plt.gca()
+    ax_res = ax.twinx()
 
     bins = np.logspace(
         np.log10(df[true_energy_key].min()),
@@ -96,43 +103,63 @@ def plot_bias_resolution(
     binned['center'] = 0.5 * (bins[:-1] + bins[1:])
     binned['width'] = np.diff(bins)
 
-    grouped = df.groupby('bin')
-    binned['bias'] = grouped['rel_error'].mean()
-    binned['bias_median'] = grouped['rel_error'].median()
-    binned['lower_sigma'] = grouped['rel_error'].agg(lambda s: np.percentile(s, 15))
-    binned['upper_sigma'] = grouped['rel_error'].agg(lambda s: np.percentile(s, 85))
-    binned['resolution_quantiles'] = (binned.upper_sigma - binned.lower_sigma) / 2
-    binned['resolution'] = grouped['rel_error'].std()
+    resolution_quantiles = []
+    resolution_stds = []
+    bias = []
 
-    ax.errorbar(
+    for i in tqdm(range(100)):
+        grouped = df.sample(len(df), replace=True).groupby('bin')
+        bias.append(grouped['rel_error'].mean())
+        lower_sigma = grouped['rel_error'].agg(lambda s: np.percentile(s, 15.87))
+        upper_sigma = grouped['rel_error'].agg(lambda s: np.percentile(s, 84.13))
+        resolution_quantiles.append(0.5 * (upper_sigma - lower_sigma))
+        resolution_stds.append(grouped.rel_error.std())
+
+    bias = pd.concat(bias, axis=1)
+    resolution_quantiles = pd.concat(resolution_quantiles, axis=1)
+    resolution_stds = pd.concat(resolution_stds, axis=1)
+
+    binned['bias'] = bias.mean(axis=1)
+    binned['bias_err'] = bias.std(axis=1)
+    binned['resolution_quantiles'] = resolution_quantiles.mean(axis=1)
+    binned['resolution_quantiles_err'] = resolution_quantiles.std(axis=1)
+    binned['resolution'] = resolution_stds.mean(axis=1)
+    binned['resolution_err'] = resolution_stds.std(axis=1)
+
+    ax_bias.errorbar(
         binned['center'],
         binned['bias'],
         xerr=0.5 * binned['width'],
+        yerr=binned['bias_err'],
         label='Bias',
         linestyle='',
+        color='C0'
     )
 
     if std is False:
-        ax.errorbar(
+        ax_res.errorbar(
             binned['center'],
             binned['resolution_quantiles'],
             xerr=0.5 * binned['width'],
+            yerr=binned['resolution_quantiles_err'],
             label='Resolution',
             linestyle='',
+            color='C1',
         )
     else:
-        ax.errorbar(
+        ax_res.errorbar(
             binned['center'],
             binned['resolution'],
+            yerr=binned['resolution_err'],
             xerr=0.5 * binned['width'],
             label='Resolution',
             linestyle='',
+            color='C1',
         )
 
-    ax.legend()
-    ax.set_xscale('log')
+    ax_res.set_xscale('log')
 
-    return ax
+    return ax_bias, ax_res
 
 
 if __name__ == '__main__':

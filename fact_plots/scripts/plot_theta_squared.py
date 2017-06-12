@@ -34,7 +34,7 @@ columns = [
 print(plt.rcParams['text.usetex'])
 tex = plt.rcParams['text.usetex'] or (plt.get_backend() == 'pgf')
 
-stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
+stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.1f}\,\mathrm{{h}}$
 $N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
 $N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
@@ -140,7 +140,6 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     else:
         limits = [0, 0.3]
 
-
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     h_on, bin_edges = np.histogram(
@@ -178,7 +177,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     )
 
     if not source_dependent:
-        ax.axvline(theta_cut**2, color='gray', linestyle='--')
+        ax.axvline(theta_cut**2, color='black', alpha=0.3, linestyle='--')
 
     n_on = np.sum(theta_on < theta_cut)
     n_off = np.sum(theta_off < theta_cut)
@@ -199,7 +198,6 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
             significance=significance,
         ),
         transform=ax.transAxes,
-        fontsize=12,
         va='top',
         ha='center',
     )
@@ -214,7 +212,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
 
     ax.set_xlim(*limits)
     ax.set_xlabel(plot_config['xlabel'])
-    ax.legend()
+    ax.legend(loc='lower right')
     fig.tight_layout(pad=0)
 
     if output:
