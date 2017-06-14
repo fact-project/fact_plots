@@ -47,7 +47,14 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
     all_events = pd.read_hdf(corsika_headers, 'table')
 
-    analysed = read_data(analysis_output, key='events')
+    analysed = read_data(analysis_output,
+                         key='events',
+                         columns=[
+                             'corsika_evt_header_total_energy',
+                             'gamma_prediction',
+                             'theta_deg'
+                         ]
+                         )
 
     impact = impact * u.m
 
@@ -84,7 +91,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         plt.errorbar(
             bin_centers,
             area.value,
-            xerr=bin_width/2,
+            xerr=bin_width / 2,
             yerr=[
                 (area - lower_conf).value,
                 (upper_conf - area).value
