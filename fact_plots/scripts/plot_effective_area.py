@@ -28,7 +28,7 @@ plot_config = {
 @click.argument('ANALYSIS_OUTPUT')
 @click.option('-f', '--fraction', type=float, help='Sample fraction for all_events')
 @click.option('-t', '--threshold', type=float, default=[0.8], multiple=True, help='Prediction threshold to use')
-@click.option('-c', '--theta2-cut', type=float, default=[0.03], multiple=True, help='Theta squared cut to use')
+@click.option('--theta2-cut', type=float, default=[0.03], multiple=True, help='Theta squared cut to use')
 @click.option('--n-bins', type=int, default=20,  help='Number of bins for the area')
 @click.option(
     '-i',
