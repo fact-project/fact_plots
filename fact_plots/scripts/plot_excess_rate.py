@@ -1,7 +1,6 @@
-from fact import analysis, instrument
-from fact import  plotting
+from fact import analysis
+from fact import plotting
 from fact.io import read_h5py
-from fact.instrument import camera_distance_mm_to_deg
 import pandas as pd
 from dateutil.parser import parse
 import numpy as np
@@ -9,6 +8,16 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 import click
+
+from ..plotting import add_preliminary
+
+
+plot_config = {
+    'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
+    'preliminary_position': 'lower right',
+    'preliminary_size': 20,
+    'preliminary_color': 'lightgray',
+}
 
 
 columns = [
@@ -23,6 +32,7 @@ columns = [
     'night',
 ]
 
+
 @click.command()
 @click.argument('data_path')
 @click.option('--threshold', type=float, help='prediction threshold', default=0.8, show_default=True)
@@ -32,8 +42,10 @@ columns = [
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
 @click.option('--start', help='Date of first observation YYYY-MM-DD HH:SS or anything parseable by dateutil')
 @click.option('--end', help='Date of first observation YYYY-MM-DD HH:SS or anything parseable by dateutil')
+@click.option('-f', '--ontime-fraction', default=0.90, help='Discard bins with less ontime than fraction * binning')
+@click.option('--preliminary', is_flag=True, help='Add preliminary')
 @click.option('-o', '--output', help='(optional) output file for the plot')
-def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, output):
+def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, ontime_fraction, preliminary, output):
     '''
     Given the DATA_PATH to a data hdf5 file (e.g. the output of ERNAs gather scripts)
     this script will create a plot of excess rates over time.
@@ -95,13 +107,26 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, outp
     def f(df):
         return analysis.ontime_binning(df, bin_width_minutes=binning)
 
-    d = analysis.bin_runs(summary, alpha=alpha, binning_function=f)
+    bins = analysis.bin_runs(summary, alpha=alpha, binning_function=f)
+    bins = bins.query('ontime >= (@ontime_fraction * @binning * 60)')
 
-    ax = plotting.analysis.plot_excess_rate(d)
+    ax_exc, ax_sig = plotting.analysis.plot_excess_rate(bins)
+
+    if preliminary:
+        add_preliminary(
+            plot_config['preliminary_position'],
+            size=plot_config['preliminary_size'],
+            color=plot_config['preliminary_color'],
+            ax=ax_exc,
+        )
+
+    plt.tight_layout(pad=0)
+
     if output:
         plt.savefig(output, dpi=300)
     else:
         plt.show()
+
 
 if __name__ == '__main__':
     main()

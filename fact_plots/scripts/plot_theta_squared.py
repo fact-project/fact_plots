@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+import yaml
 from dateutil.parser import parse as parse_date
 
 from fact.io import read_h5py
@@ -11,8 +12,16 @@ from fact.analysis import (
 )
 import click
 
+from ..plotting import add_preliminary
+
+plot_config = {
+    'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
+    'preliminary_position': 'right',
+    'preliminary_size': 20,
+    'preliminary_color': 'lightgray',
+}
+
 columns = [
-    'gamma_prediction',
     'theta_deg',
     'theta_deg_off_1',
     'theta_deg_off_2',
@@ -22,10 +31,16 @@ columns = [
     'unix_time_utc',
 ]
 
-stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.2f}\,\mathrm{{h}}$
+print(plt.rcParams['text.usetex'])
+tex = plt.rcParams['text.usetex'] or (plt.get_backend() == 'pgf')
+
+stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.1f}\,\mathrm{{h}}$
 $N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
 $N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
 '''
+
+if tex:
+    stats_box_template = stats_box_template.replace('&', '\&')
 
 
 @click.command()
@@ -37,8 +52,10 @@ $N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} 
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
 @click.option('--start', help='First timestamp to consider', type=parse_date)
 @click.option('--end', help='last timestamp to consider', type=parse_date)
+@click.option('--preliminary', is_flag=True, help='Add preliminary')
+@click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output', help='(optional) Output file for the plot')
-def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output):
+def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, preliminary, config, output):
     '''
     Given the DATA_PATH to a data hdf5 file (e.g. the output of ERNAs gather scripts)
     this script will create the infamous theta square plot.
@@ -52,7 +69,6 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
 
     The HDF files are expected to a have a group called 'runs' and a group called 'events'
     The events group has to have the columns:
-        'gamma_prediction',
         'theta',
         'theta_deg_off_1',
         'theta_deg_off_2',
@@ -60,13 +76,22 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
         'theta_deg_off_4',
         'theta_deg_off_5',
 
+    If a prediction threshold is to be used, also 'gamma_prediction',
+    must be in the group.
     The 'gamma_prediction' column can be added to the data using
     'klaas_apply_separation_model' for example.
     '''
+    if config:
+        with open(config) as f:
+            plot_config.update(yaml.safe_load(f))
+
     theta_cut = np.sqrt(theta2_cut)
 
     with h5py.File(data_path, 'r') as f:
         source_dependent = 'gamma_prediction_off_1' in f[key].keys()
+
+    if threshold > 0.0 or source_dependent:
+        columns.append('gamma_prediction')
 
     if source_dependent:
         print('Separation was using source dependent features')
@@ -95,7 +120,10 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
         theta_on = on_data.theta_deg
         theta_off = off_data.theta_deg
     else:
-        selected = events.query('gamma_prediction >= {}'.format(threshold))
+        if threshold > 0:
+            selected = events.query('gamma_prediction >= {}'.format(threshold))
+        else:
+            selected = events
         theta_on = selected.theta_deg
         theta_off = pd.concat([
             selected['theta_deg_off_{}'.format(i)]
@@ -149,7 +177,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
     )
 
     if not source_dependent:
-        ax.axvline(theta_cut**2, color='gray', linestyle='--')
+        ax.axvline(theta_cut**2, color='black', alpha=0.3, linestyle='--')
 
     n_on = np.sum(theta_on < theta_cut)
     n_off = np.sum(theta_off < theta_cut)
@@ -170,14 +198,22 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, output)
             significance=significance,
         ),
         transform=ax.transAxes,
-        fontsize=12,
         va='top',
         ha='center',
     )
 
-    ax.set_xlabel(r'$(\theta / {}^\circ )^2$')
-    ax.legend()
-    fig.tight_layout()
+    if preliminary:
+        add_preliminary(
+            plot_config['preliminary_position'],
+            size=plot_config['preliminary_size'],
+            color=plot_config['preliminary_color'],
+            ax=ax,
+        )
+
+    ax.set_xlim(*limits)
+    ax.set_xlabel(plot_config['xlabel'])
+    ax.legend(loc='lower right')
+    fig.tight_layout(pad=0)
 
     if output:
         fig.savefig(output, dpi=300)
