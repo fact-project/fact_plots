@@ -162,7 +162,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     ax.errorbar(
         bin_center,
         h_on,
-        yerr=np.sqrt(h_on) / 2,
+        yerr=np.sqrt(h_on),
         xerr=bin_width / 2,
         linestyle='',
         label='On',
@@ -170,7 +170,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     ax.errorbar(
         bin_center,
         h_off,
-        yerr=alpha * np.sqrt(h_off) / 2,
+        yerr=alpha * np.sqrt(h_off),
         xerr=bin_width / 2,
         linestyle='',
         label='Off',
