@@ -1,17 +1,14 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='fact_plots',
-    version='0.0.5',
+    version='0.0.6',
     description='a collection of plotting scrtipts for data of FACT',
     url='https://github.com/fact-project/fact_plots',
     author='Kai Brügge, Jens Buss, Maximilian Nöthe',
     author_email='jens.buss@tu-dortmund.de',
     license='BEER',
-    packages=[
-        'fact_plots',
-        'fact_plots.scripts',
-    ],
+    packages=find_packages(),
     install_requires=[
         'pandas',           # in anaconda
         'numpy',            # in anaconda
