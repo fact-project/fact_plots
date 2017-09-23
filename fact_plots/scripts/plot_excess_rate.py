@@ -72,12 +72,9 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
     if source_dependent:
         print('Separation was using source dependent features')
         columns.extend('gamma_prediction_off_' + str(i) for i in range(1, 6))
-        theta_cut = np.inf
         theta2_cut = np.inf
 
-
     events = read_h5py(data_path, key='events', columns=columns)
-    # events = events.rename(columns={'RUNID':'run_id', 'NIGHT':'night'})
 
     runs = read_h5py(data_path, key='runs')
     runs['run_start'] = pd.to_datetime(runs['run_start'])
