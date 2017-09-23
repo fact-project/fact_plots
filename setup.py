@@ -41,6 +41,7 @@ setup(
             'fact_plot_energy_migration = fact_plots.scripts.plot_energy_migration:main',
             'fact_plot_bias_resolution = fact_plots.scripts.plot_bias_resolution:main',
             'fact_plot_angular_resolution = fact_plots.scripts.plot_angular_resolution:main',
+            'fact_plot_skymap = fact_plots.scripts.plot_skymap:main',
         ],
     }
 )
