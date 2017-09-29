@@ -1,8 +1,7 @@
 import click
-import pandas as pd
-import numpy as np
 from fact.io import read_h5py
 from ..plotting import add_preliminary
+from ..angular_resolution import plot_angular_resolution
 import matplotlib.pyplot as plt
 import yaml
 
@@ -28,6 +27,16 @@ plot_config = {
 @click.option('-o', '--output')
 @click.option('--preliminary', is_flag=True, help='add preliminary')
 def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
+    '''
+    Plot the 68% containment radius for different energy bins
+
+    ARGUMENTS
+
+    GAMMA_PATH: HDF5 file for simulated gamma rays containing the keys
+        * gamma_prediction
+        * theta_deg
+        * corsika_evt_header_total_energy
+    '''
     if config:
         with open(config) as f:
             plot_config.update(yaml.safe_load(f))
@@ -37,7 +46,6 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
         key='events',
         columns=[
             'corsika_evt_header_total_energy',
-            'gamma_energy_prediction',
             'gamma_prediction',
             'theta_deg'
         ],
@@ -59,6 +67,7 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
         )
 
     plot_angular_resolution(df, n_bins=n_bins, ax=ax)
+
     ax.set_xlabel(plot_config['xlabel'])
     ax.set_ylabel(plot_config['ylabel'])
 
@@ -68,59 +77,6 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
         fig.savefig(output, dpi=300)
     else:
         plt.show()
-
-
-def plot_angular_resolution(
-        df,
-        n_bins=10,
-        ax=None,
-        theta_key='theta_deg',
-        std=False,
-        true_energy_key='corsika_evt_header_total_energy',
-        ):
-
-    ax = ax or plt.gca()
-
-    bins = np.logspace(
-        np.log10(df[true_energy_key].min()),
-        np.log10(df[true_energy_key].max()),
-        n_bins + 1
-    )
-
-    df['bin'] = np.digitize(df[true_energy_key], bins)
-
-    binned = pd.DataFrame(index=np.arange(1, len(bins)))
-    binned['center'] = 0.5 * (bins[:-1] + bins[1:])
-    binned['width'] = np.diff(bins)
-
-    grouped = df.groupby('bin')
-
-    values = []
-    for i in range(100):
-        sampled = df.sample(len(df), replace=True).groupby('bin')
-        resolution = np.full(n_bins, np.nan)
-        s = sampled[theta_key].agg(lambda s: np.percentile(s.values, 68))
-
-        resolution[s.index.values - 1] = s.values
-        values.append(resolution)
-
-    binned['angular_resolution'] = np.nanmean(values, axis=0)
-    binned['angular_resolution_err'] = np.nanstd(values, axis=0)
-    binned['size'] = grouped.size()
-
-    binned = binned.query('size > 200')
-
-    ax.errorbar(
-        binned['center'],
-        binned['angular_resolution'],
-        xerr=0.5 * binned['width'],
-        yerr=binned['angular_resolution_err'],
-        linestyle='',
-    )
-
-    ax.set_xscale('log')
-
-    return ax
 
 
 if __name__ == '__main__':
