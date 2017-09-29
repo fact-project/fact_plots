@@ -73,5 +73,3 @@ def plot_angular_resolution(
     ax.set_xscale('log')
 
     return ax
-
-
