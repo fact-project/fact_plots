@@ -24,7 +24,7 @@ plot_config = {
 @click.command()
 @click.argument('CORSIKA_HEADERS')
 @click.argument('ANALYSIS_OUTPUT')
-@click.option('-f', '--fraction', type=float, help='Sample fraction for all_events')
+@click.option('-f', '--fraction', type=float, help='Sample fraction for all_events', default=1.0)
 @click.option('-t', '--threshold', type=float, default=[0.8], multiple=True, help='Prediction threshold to use')
 @click.option('--theta2-cut', type=float, default=[0.03], multiple=True, help='Theta squared cut to use')
 @click.option('--n-bins', type=int, default=20,  help='Number of bins for the area')
@@ -86,7 +86,6 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
             selected.corsika_evt_header_total_energy,
             bins=bins,
             impact=impact,
-            log=False,
             sample_fraction=fraction,
             label=label,
         )
