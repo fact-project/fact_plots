@@ -12,8 +12,8 @@ from ..plotting import add_preliminary
 
 plot_config = {
     'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
-    'preliminary_position': 'right',
-    'preliminary_size': 20,
+    'preliminary_position': 'lower center',
+    'preliminary_size': 'xx-large',
     'preliminary_color': 'lightgray',
 }
 
@@ -91,7 +91,7 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
         )
         ax.legend()
 
-    fig.colorbar(img, cax=cax)
+    fig.colorbar(img, cax=cax, label='Gamma-Like Events')
 
     if preliminary:
         add_preliminary(
@@ -99,6 +99,7 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
             size=plot_config['preliminary_size'],
             color=plot_config['preliminary_color'],
             ax=ax,
+            zorder=3,
         )
 
     fig.tight_layout(pad=0)

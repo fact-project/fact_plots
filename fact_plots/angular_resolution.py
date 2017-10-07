@@ -10,6 +10,7 @@ def plot_angular_resolution(
         theta_key='theta_deg',
         true_energy_key='corsika_evt_header_total_energy',
         min_bin_count=200,
+        **kwargs,
         ):
     '''
     Plot the angular resolution from a dataframe of simulated
@@ -34,8 +35,8 @@ def plot_angular_resolution(
     ax = ax or plt.gca()
 
     bins = np.logspace(
-        np.log10(df[true_energy_key].min()),
-        np.log10(df[true_energy_key].max()),
+        np.log10(df[true_energy_key].min()) - 1e-12,
+        np.log10(df[true_energy_key].max()) + 1e-12,
         n_bins + 1
     )
 
@@ -68,10 +69,9 @@ def plot_angular_resolution(
         xerr=0.5 * binned['width'],
         yerr=binned['angular_resolution_err'],
         linestyle='',
+        **kwargs
     )
 
     ax.set_xscale('log')
 
     return ax
-
-

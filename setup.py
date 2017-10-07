@@ -12,7 +12,7 @@ setup(
     install_requires=[
         'pandas',           # in anaconda
         'numpy',            # in anaconda
-        'matplotlib>=1.4',  # in anaconda
+        'matplotlib>=1.5',  # in anaconda
         'python-dateutil',  # in anaconda
         'pytz',             # in anaconda
         'tables',           # needs to be installed by pip for some reason
@@ -22,7 +22,6 @@ setup(
         'scipy',
         'click',
         'docopt',
-        'datetime',
         'numexpr',
         'pytest',
         'matplotlib-hep==0.1.0'

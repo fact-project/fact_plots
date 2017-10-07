@@ -13,7 +13,7 @@ def plot_effective_area(
         bins=10,
         sample_fraction=1.0,
         ax=None,
-        **kwargs,
+        **kwargs
         ):
 
     ax = ax or plt.gca()
