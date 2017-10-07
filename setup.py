@@ -10,21 +10,21 @@ setup(
     license='BEER',
     packages=find_packages(),
     install_requires=[
-        'pandas',           # in anaconda
-        'numpy',            # in anaconda
-        'matplotlib>=1.5',  # in anaconda
-        'python-dateutil',  # in anaconda
-        'pytz',             # in anaconda
-        'tables',           # needs to be installed by pip for some reason
-        'click',
-        'pyfact>=0.10.4',
-        'h5py',
-        'scipy',
         'click',
         'docopt',
-        'numexpr',
-        'pytest',
+        'h5py',
         'matplotlib-hep==0.1.0'
+        'matplotlib>=1.5',  # in anaconda
+        'numexpr',
+        'numpy',            # in anaconda
+        'pandas',           # in anaconda
+        'pyfact>=0.12.1',
+        'pytest',
+        'python-dateutil',  # in anaconda
+        'pytz',             # in anaconda
+        'scipy',
+        'tables',           # needs to be installed by pip for some reason
+        'tqdm',
     ],
     zip_safe=False,
     entry_points={

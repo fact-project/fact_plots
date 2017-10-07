@@ -69,7 +69,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
             ax=ax,
         )
 
-    ax_bias, ax_res = plot_bias_resolution(df, n_bins=n_bins, std=std, ax=ax)
+    ax_bias, ax_res = plot_bias_resolution(df, n_bins=n_bins, std=std, ax_bias=ax)
 
     ax_bias.set_xlabel(plot_config['xlabel'])
 
