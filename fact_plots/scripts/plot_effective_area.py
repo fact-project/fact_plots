@@ -84,8 +84,8 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         plot_effective_area(
             all_events.energy,
             selected.corsika_evt_header_total_energy,
-            bins,
-            impact,
+            bins=bins,
+            impact=impact,
             log=False,
             sample_fraction=fraction,
             label=label,
