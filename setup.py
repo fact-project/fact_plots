@@ -13,7 +13,7 @@ setup(
         'click',
         'docopt',
         'h5py',
-        'matplotlib-hep==0.1.0'
+        'matplotlib-hep==0.1.0',
         'matplotlib>=1.5',  # in anaconda
         'numexpr',
         'numpy',            # in anaconda
