@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 # from __future__ import print_function
 import numpy as np
-import matplotlib
 import datetime
 import click
-# matplotlib.rc_file("./matplotlibrc")
-# matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 from matplotlib_hep import histpoints
 from matplotlib.backends.backend_pdf import PdfPages
 from cycler import cycler
-from docopt import docopt
 import pandas as pd
 import logging
 from IPython import embed
@@ -23,18 +19,19 @@ from ..default_cuts import cuts as d_cuts
 from ..utils import merge_dicts
 
 default_plot_option = dict(
-    # histtype='step',
-    # normed=True,
     bottom=0,
     align='left',
 )
 
 color_cycle = cycler(color=['black', 'r', 'g', 'b'])
 
-logger  = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 logging.captureWarnings(True)
-logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +  '%(message)s'), level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+)
 
 
 def aggregatePlottingCuts(cuts, default_cuts):
@@ -50,10 +47,11 @@ def aggregatePlottingCuts(cuts, default_cuts):
             plotting_cuts.extend(d_cuts[cut_set])
 
     if plotting_cuts:
-        logger.info("using cuts:{}".format( plotting_cuts))
+        logger.info("using cuts:{}".format(plotting_cuts))
         cuts = " & ".join(plotting_cuts)
 
     return cuts
+
 
 def loadData(datatupels, cuts):
     datafiles = []
@@ -70,7 +68,7 @@ def loadData(datatupels, cuts):
         labels.append(label)
 
         logger.info("loading: {}, key={}".format(datafile, tablename))
-        df=pd.DataFrame()
+        df = pd.DataFrame()
         try:
             df = pd.read_hdf(datafile, tablename)
         except KeyError:
@@ -114,8 +112,6 @@ def calcDataRange(df_list, key):
     return min_val, max_val
 
 
-
-# default plotting options for all comparison plots
 @click.command()
 @click.argument('outputfile', type=click.Path(exists=False, dir_okay=True, file_okay=True))
 @click.option('--datatupels', '-d', multiple=True, nargs=4, type=click.Tuple([click.Path(exists=True, dir_okay=True), click.STRING, click.FLOAT, click.STRING]), help='tupels of: path to hdf5 file, table name, scale, label')
@@ -141,7 +137,7 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
         for key in common_keys:
             logger.info(key)
 
-            #skip tupples
+            # skip tuples
             if isinstance(df_list[0][key].iloc[0], (list, tuple)):
                 logger.info("skipping column {}: cannot interprete content".format(key))
                 continue
@@ -152,10 +148,9 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
             if key in default_plots:
                 plot_option = default_plots[key]
 
-                if plot_option == False:
+                if plot_option is False:
                     plt.close()
                     continue
-
 
                 data_range = calcDataRange(df_list, key)
 
@@ -164,17 +159,17 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
 
                 xlabel = key
                 func = None
-                xUnit=""
+                xUnit = ""
 
-                if plot_option == None:
+                if plot_option is None:
                     plot_option = default_plot_option
                 else:
                     # embed()
-                    func    = plot_option["func"]
-                    xUnit   = plot_option["xUnit"]
-                    xlabel  += " / " + xUnit
+                    func = plot_option["func"]
+                    xUnit = plot_option["xUnit"]
+                    xlabel += " / " + xUnit
 
-                    if func and func.__name__ and not "lambda" in func.__name__:
+                    if func and func.__name__ and "lambda" not in func.__name__:
                         # embed()
                         func_name = str(func.__name__)
                         logger.info("Function: {}({})".format(func_name, key))

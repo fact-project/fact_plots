@@ -1,6 +1,3 @@
-# coding: utf-8
-from irf.collection_area import collection_area_energy
-from fact.instrument import camera_distance_mm_to_deg
 import pandas as pd
 from fact.io import read_data
 import astropy.units as u
@@ -12,6 +9,7 @@ import yaml
 import click
 
 from ..plotting import add_preliminary
+from ..effective_area import plot_effective_area
 
 
 plot_config = {
@@ -26,7 +24,7 @@ plot_config = {
 @click.command()
 @click.argument('CORSIKA_HEADERS')
 @click.argument('ANALYSIS_OUTPUT')
-@click.option('-f', '--fraction', type=float, help='Sample fraction for all_events')
+@click.option('-f', '--fraction', type=float, help='Sample fraction for all_events', default=1.0)
 @click.option('-t', '--threshold', type=float, default=[0.8], multiple=True, help='Prediction threshold to use')
 @click.option('--theta2-cut', type=float, default=[0.03], multiple=True, help='Theta squared cut to use')
 @click.option('--n-bins', type=int, default=20,  help='Number of bins for the area')
@@ -47,14 +45,15 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
     all_events = pd.read_hdf(corsika_headers, 'table')
 
-    analysed = read_data(analysis_output,
-                         key='events',
-                         columns=[
-                             'corsika_evt_header_total_energy',
-                             'gamma_prediction',
-                             'theta_deg'
-                         ]
-                         )
+    analysed = read_data(
+        analysis_output,
+        key='events',
+        columns=[
+            'corsika_evt_header_total_energy',
+            'gamma_prediction',
+            'theta_deg'
+        ]
+    )
 
     impact = impact * u.m
 
@@ -78,26 +77,17 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
             '(gamma_prediction >= @threshold) & (theta_deg**2 <= @theta2_cut)'
         ).copy()
 
-        ret = collection_area_energy(
-            all_events, selected, bins, impact, log=False,
-            sample_fraction=fraction,
-        )
-        area, bin_centers, bin_width, lower_conf, upper_conf = ret
-
         label = r'$\mathtt{{gamma\_prediction}} \geq {}$'.format(threshold)
         if theta2_cut != np.inf:
             label += r', $\theta^2 \leq {:.3g}\,\mathrm{{deg}}^2$'.format(theta2_cut)
 
-        plt.errorbar(
-            bin_centers,
-            area.value,
-            xerr=bin_width / 2,
-            yerr=[
-                (area - lower_conf).value,
-                (upper_conf - area).value
-            ],
-            linestyle='',
-            label=label
+        plot_effective_area(
+            all_events.energy,
+            selected.corsika_evt_header_total_energy,
+            bins=bins,
+            impact=impact,
+            sample_fraction=fraction,
+            label=label,
         )
 
     if preliminary:

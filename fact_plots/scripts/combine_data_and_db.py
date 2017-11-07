@@ -27,12 +27,15 @@ from scipy.optimize import curve_fit
 logger  = logging.getLogger(__name__)
 args = docopt(__doc__)
 
+
 def gauss(x, mu, sigma):
     return 1/(np.sqrt(2*np.pi)*sigma) * np.exp(-0.5*(x-mu)**2/sigma**2)
+
 
 def combine_data_to_db(db_df, data_df):
     df = data_df.rename(columns={'RUNID': 'fRunID', 'NIGHT': 'fNight'})
     return pd.merge(df, db_df, on=['fNight', 'fRunID'])
+
 
 def mean_data_binned(df_for_bin, df_for_mean, nBins, min_val=None, max_val=None):
 
@@ -211,6 +214,6 @@ def main():
     ax.set_ylabel("mean of pedestal Size")
 
     fig.savefig("pedestalSize.pdf")
-    
+
 if __name__ == '__main__':
     main()

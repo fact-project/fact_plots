@@ -27,7 +27,8 @@ def add_preliminary(
         color='lightgray',
         ha='right',
         va='top',
-        ax=None
+        ax=None,
+        zorder=-1,
         ):
     ax = ax or plt.gca()
 
@@ -40,7 +41,7 @@ def add_preliminary(
         color=color,
         transform=ax.transAxes,
         weight='bold',
-        zorder=-1,
+        zorder=zorder,
     )
 
 
