@@ -18,7 +18,7 @@ setup(
         'numexpr',
         'numpy',            # in anaconda
         'pandas',           # in anaconda
-        'pyfact>=0.12.1',
+        'pyfact>=0.14.1',
         'pytest',
         'python-dateutil',  # in anaconda
         'pytz',             # in anaconda

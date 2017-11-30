@@ -107,7 +107,7 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
     bins = analysis.bin_runs(summary, alpha=alpha, binning_function=f)
     bins = bins.query('ontime >= (@ontime_fraction * @binning * 60)')
 
-    ax_exc, ax_sig = plotting.analysis.plot_excess_rate(bins)
+    ax_exc, ax_sig, ax_mjd = plotting.analysis.plot_excess_rate(bins)
 
     if preliminary:
         add_preliminary(
