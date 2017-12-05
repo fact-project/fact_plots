@@ -9,6 +9,7 @@ from fact.io import read_h5py
 
 from ..skymap import plot_skymap
 from ..plotting import add_preliminary
+from ..time import read_timestamp
 
 plot_config = {
     'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
@@ -19,7 +20,6 @@ plot_config = {
 
 columns = [
     'reconstructed_source_position',
-    'unix_time_utc',
     'az_tracking',
     'zd_tracking',
 ]
@@ -49,10 +49,7 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
 
     events = read_h5py(data_path, key='events', columns=columns)
 
-    events['time'] = pd.to_datetime(
-        events['unix_time_utc_0'] * 1e6 + events['unix_time_utc_1'],
-        unit='us',
-    )
+    events['time'] = read_timestamp(data_path)
 
     if threshold > 0.0:
         events = events.query('gamma_prediction >= @threshold').copy()
