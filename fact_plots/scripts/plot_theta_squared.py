@@ -13,6 +13,7 @@ from fact.analysis import (
 import click
 
 from ..plotting import add_preliminary
+from ..time import read_timestamp
 
 plot_config = {
     'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
@@ -101,16 +102,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     events = read_h5py(data_path, key='events', columns=columns)
 
     if start or end:
-        try:
-            col = 'unix_time_utc'
-            unix_time_utc = read_h5py(data_path, key='events', columns=[col])
-            events['timestamp'] = pd.to_datetime(
-                unix_time_utc[col + '_0'] * 1e6 + unix_time_utc[col + '_1'],
-                unit='us',
-            )
-        except KeyError:
-            timestamp = read_h5py(data_path, key='events', columns=['timestamp'])
-            events['timestamp'] = pd.to_datetime(timestamp['timestamp'])
+        events['timestamp'] = read_timestamp(data_path)
 
     try:
         runs = read_h5py(data_path, key='runs')
