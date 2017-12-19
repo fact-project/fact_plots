@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
+import pandas as pd
 
 from irf.collection_area import collection_area
 
@@ -49,5 +50,13 @@ def plot_effective_area(
         linestyle=linestyle,
         **kwargs,
     )
+    
+    area_df = pd.DataFrame(dict(
+        area = area,
+        bin_centers = bin_centers,
+        bin_width = bin_width,
+        lower_confidence = lower_conf,
+        upper_confidence = lower_conf,
+    ))
 
-    return line
+    return line, area_df
