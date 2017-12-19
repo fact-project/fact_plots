@@ -38,7 +38,8 @@ plot_config = {
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
 @click.option('--preliminary', is_flag=True, help='add preliminary')
-def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bins, impact, config, output, preliminary):
+@click.option('--csvfile', help='Store Data Points in CSV file', type=str, default=None)
+def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bins, impact, config, output, preliminary, csvfile):
     if config:
         with open(config) as f:
             plot_config.update(yaml.safe_load(f))
@@ -117,6 +118,10 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         plt.savefig(output, dpi=300)
     else:
         plt.show()
+        
+    if csvfile is not None:
+        area_dfs = pd.concat(area_dfs)
+        area_dfs.to_csv(csvfile,index=False)
 
 
 if __name__ == '__main__':
