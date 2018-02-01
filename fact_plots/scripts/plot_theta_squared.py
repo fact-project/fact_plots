@@ -13,6 +13,7 @@ from fact.analysis import (
 import click
 
 from ..plotting import add_preliminary
+from ..time import read_timestamp
 
 plot_config = {
     'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
@@ -28,7 +29,6 @@ columns = [
     'theta_deg_off_3',
     'theta_deg_off_4',
     'theta_deg_off_5',
-    'unix_time_utc',
 ]
 
 print(plt.rcParams['text.usetex'])
@@ -100,13 +100,16 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
         theta2_cut = np.inf
 
     events = read_h5py(data_path, key='events', columns=columns)
-    events['timestamp'] = pd.to_datetime(
-        events['unix_time_utc_0'] * 1e6 + events['unix_time_utc_1'],
-        unit='us',
-    )
-    runs = read_h5py(data_path, key='runs')
-    runs['run_start'] = pd.to_datetime(runs['run_start'])
-    runs['run_stop'] = pd.to_datetime(runs['run_stop'])
+
+    if start or end:
+        events['timestamp'] = read_timestamp(data_path)
+
+    try:
+        runs = read_h5py(data_path, key='runs')
+        runs['run_start'] = pd.to_datetime(runs['run_start'])
+        runs['run_stop'] = pd.to_datetime(runs['run_stop'])
+    except IOError:
+        runs = pd.DataFrame(columns=['run_start', 'run_stop', 'ontime', 'source'])
 
     if start is not None:
         events = events.query('timestamp >= @start')
@@ -190,7 +193,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     ax.text(
         0.5, 0.95,
         stats_box_template.format(
-            source=runs.source.iloc[0],
+            source=runs.source.iloc[0] if len(runs) > 0 else '',
             t_obs=runs.ontime.sum() / 3600,
             n_on=n_on, n_off=n_off, alpha=alpha,
             n_excess=n_on - alpha * n_off,

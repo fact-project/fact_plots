@@ -9,6 +9,7 @@ from fact.io import read_h5py
 
 from ..skymap import plot_skymap
 from ..plotting import add_preliminary
+from ..time import read_timestamp
 
 plot_config = {
     'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
