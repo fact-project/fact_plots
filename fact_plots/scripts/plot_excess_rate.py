@@ -1,4 +1,5 @@
 from fact import analysis
+import fact.analysis.binning
 from fact import plotting
 from fact.io import read_h5py
 import pandas as pd
@@ -38,7 +39,7 @@ columns = [
 @click.option('--threshold', type=float, help='prediction threshold', default=0.8, show_default=True)
 @click.option('--theta2-cut', type=float, help='cut for theta^2 in deg^2', default=0.03, show_default=True)
 @click.option('--key', help='Key for the hdf5 group', default='events')
-@click.option('--binning', help='Ontime in one bin in minutes', default=20, show_default=True)
+@click.option('--binning', help='Ontime in one bin in minutes', default='20', show_default=True)
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
 @click.option('--start', help='Date of first observation YYYY-MM-DD HH:SS or anything parseable by dateutil')
 @click.option('--end', help='Date of first observation YYYY-MM-DD HH:SS or anything parseable by dateutil')
@@ -101,11 +102,20 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
             theta2_cut=theta2_cut,
         )
 
-    def f(df):
-        return analysis.ontime_binning(df, bin_width_minutes=binning)
+    if binning == 'nightly':
+        f = fact.analysis.binning.nightly_binning
+    else:
+        try:
+            binning = float(binning)
+        except ValueError:
+            click.abort('--binning must be float or "nightly"')
+
+        def f(df):
+            return fact.analysis.binning.ontime_binning(df, bin_width_minutes=binning)
 
     bins = analysis.bin_runs(summary, alpha=alpha, binning_function=f)
-    bins = bins.query('ontime >= (@ontime_fraction * @binning * 60)')
+    if isinstance(binning, float):
+        bins = bins.query('ontime >= (@ontime_fraction * @binning * 60)')
 
     ax_exc, ax_sig, ax_mjd = plotting.analysis.plot_excess_rate(bins)
 
