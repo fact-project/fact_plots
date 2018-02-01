@@ -9,6 +9,7 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 import click
+from functools import partial
 
 from ..plotting import add_preliminary
 
@@ -103,17 +104,19 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
         )
 
     if binning == 'nightly':
-        f = fact.analysis.binning.nightly_binning
+        binning_function = fact.analysis.binning.nightly_binning
     else:
         try:
             binning = float(binning)
         except ValueError:
             click.abort('--binning must be float or "nightly"')
 
-        def f(df):
-            return fact.analysis.binning.ontime_binning(df, bin_width_minutes=binning)
+        binning_function = partial(
+            fact.analysis.binning.ontime_binning,
+            bin_width_minutes=binning
+        )
 
-    bins = analysis.bin_runs(summary, alpha=alpha, binning_function=f)
+    bins = analysis.bin_runs(summary, alpha=alpha, binning_function=binning_function)
     if isinstance(binning, float):
         bins = bins.query('ontime >= (@ontime_fraction * @binning * 60)')
 
