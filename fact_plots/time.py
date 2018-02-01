@@ -16,3 +16,4 @@ def read_timestamp(path):
             )
         except KeyError:
             raise KeyError('File contains neither "timestamp" nor "unix_time_utc"')
+    return timestamp
