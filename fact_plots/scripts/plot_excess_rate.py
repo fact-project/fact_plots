@@ -109,7 +109,8 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
         try:
             binning = float(binning)
         except ValueError:
-            click.abort('--binning must be float or "nightly"')
+            print('--binning must be float or "nightly"')
+            raise click.Abort()
 
         binning_function = partial(
             fact.analysis.binning.ontime_binning,
