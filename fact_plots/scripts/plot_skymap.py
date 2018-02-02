@@ -19,9 +19,8 @@ plot_config = {
 }
 
 columns = [
-    'reconstructed_source_position',
-    'az_tracking',
-    'zd_tracking',
+    'ra_prediction',
+    'dec_prediction'
 ]
 
 
@@ -48,8 +47,6 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
         columns.append('gamma_prediction')
 
     events = read_h5py(data_path, key='events', columns=columns)
-
-    events['time'] = read_timestamp(data_path)
 
     if threshold > 0.0:
         events = events.query('gamma_prediction >= @threshold').copy()
