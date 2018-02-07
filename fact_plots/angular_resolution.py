@@ -10,7 +10,7 @@ def plot_angular_resolution(
         theta_key='theta_deg',
         true_energy_key='corsika_evt_header_total_energy',
         min_bin_count=200,
-        **kwargs,
+        **kwargs
         ):
     '''
     Plot the angular resolution from a dataframe of simulated
