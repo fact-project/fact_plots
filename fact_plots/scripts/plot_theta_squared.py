@@ -31,12 +31,11 @@ columns = [
     'theta_deg_off_5',
 ]
 
-print(plt.rcParams['text.usetex'])
 tex = plt.rcParams['text.usetex'] or (plt.get_backend() == 'pgf')
 
-stats_box_template = r'''Source: {source}, $t_\mathrm{{obs}} = {t_obs:.1f}\,\mathrm{{h}}$
-$N_\mathrm{{On}} = {n_on}$, $N_\mathrm{{Off}} = {n_off}$, $\alpha = {alpha}$
-$N_\mathrm{{Exc}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_\mathrm{{Li&Ma}} = {significance:.1f}\,\sigma$
+stats_box_template = r'''Source: {source}, $t_{{\mathrm{{obs}}}} = {t_obs:.1f}\,\mathrm{{h}}$
+$N_{{\mathrm{{On}}}} = {n_on}$, $N_{{\mathrm{{Off}}}} = {n_off}$, $\alpha = {alpha}$
+$N_{{\mathrm{{Exc}}}} = {n_excess:.1f} \pm {n_excess_err:.1f}$, $S_{{\mathrm{{Li&Ma}}}} = {significance:.1f}\,\sigma$
 '''
 
 if tex:
@@ -53,9 +52,10 @@ if tex:
 @click.option('--start', help='First timestamp to consider', type=parse_date)
 @click.option('--end', help='last timestamp to consider', type=parse_date)
 @click.option('--preliminary', is_flag=True, help='Add preliminary')
+@click.option('--ymax', type=float, help='The upper ylim')
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output', help='(optional) Output file for the plot')
-def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, preliminary, config, output):
+def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, preliminary, ymax, config, output):
     '''
     Given the DATA_PATH to a data hdf5 file (e.g. the output of ERNAs gather scripts)
     this script will create the infamous theta square plot.
@@ -212,6 +212,9 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
             color=plot_config['preliminary_color'],
             ax=ax,
         )
+
+    if ymax:
+        ax.set_ylim(0, ymax)
 
     ax.set_xlim(*limits)
     ax.set_xlabel(plot_config['xlabel'])
