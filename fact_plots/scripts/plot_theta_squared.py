@@ -1,15 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import h5py
 import yaml
 from dateutil.parser import parse as parse_date
 
 from fact.io import read_h5py
-from fact.analysis import (
-    li_ma_significance,
-    split_on_off_source_dependent,
-)
+from fact.analysis import li_ma_significance
 import click
 
 from ..plotting import add_preliminary
@@ -87,17 +83,8 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
 
     theta_cut = np.sqrt(theta2_cut)
 
-    with h5py.File(data_path, 'r') as f:
-        source_dependent = 'gamma_prediction_off_1' in f[key].keys()
-
-    if threshold > 0.0 or source_dependent:
+    if threshold > 0.0:
         columns.append('gamma_prediction')
-
-    if source_dependent:
-        print('Separation was using source dependent features')
-        columns.extend('gamma_prediction_off_' + str(i) for i in range(1, 6))
-        theta_cut = np.inf
-        theta2_cut = np.inf
 
     events = read_h5py(data_path, key='events', columns=columns)
 
@@ -118,30 +105,19 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
         events = events.query('timestamp <= @end')
         runs = runs.query('run_stop <= @end')
 
-    if source_dependent:
-        on_data, off_data = split_on_off_source_dependent(events, threshold)
-        theta_on = on_data.theta_deg
-        theta_off = off_data.theta_deg
+    if threshold > 0:
+        selected = events.query('gamma_prediction >= {}'.format(threshold))
     else:
-        if threshold > 0:
-            selected = events.query('gamma_prediction >= {}'.format(threshold))
-        else:
-            selected = events
-        theta_on = selected.theta_deg
-        theta_off = pd.concat([
-            selected['theta_deg_off_{}'.format(i)]
-            for i in range(1, 6)
-        ])
+        selected = events
+    theta_on = selected.theta_deg
+    theta_off = pd.concat([
+        selected['theta_deg_off_{}'.format(i)]
+        for i in range(1, 6)
+    ])
 
     del events
 
-    if source_dependent:
-        limits = [
-            0,
-            max(np.percentile(theta_on, 99)**2, np.percentile(theta_off, 99)**2),
-        ]
-    else:
-        limits = [0, 0.3]
+    limits = [0, 0.3]
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -179,8 +155,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
         label='Off',
     )
 
-    if not source_dependent:
-        ax.axvline(theta_cut**2, color='black', alpha=0.3, linestyle='--')
+    ax.axvline(theta_cut**2, color='black', alpha=0.3, linestyle='--')
 
     n_on = np.sum(theta_on < theta_cut)
     n_off = np.sum(theta_off < theta_cut)
