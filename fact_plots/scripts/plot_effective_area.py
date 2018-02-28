@@ -63,14 +63,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         n_bins + 1,
     )
 
-    with h5py.File(analysis_output, 'r') as f:
-        source_dependent = 'gamma_prediction_off_1' in f['events'].keys()
-
-    if source_dependent:
-        print('Separation used source dependent features, ignoring theta cut')
-        theta2_cut = np.full_like(threshold, np.inf)
-    else:
-        assert len(theta2_cut) == len(threshold), 'Number of cuts has to be the same for theta and threshold'
+    assert len(theta2_cut) == len(threshold), 'Number of cuts has to be the same for theta and threshold'
 
     for threshold, theta2_cut in zip(threshold[:], theta2_cut[:]):
         selected = analysed.query(
