@@ -35,7 +35,7 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
     GAMMA_PATH: HDF5 file for simulated gamma rays containing the keys
         * gamma_prediction
         * theta_deg
-        * corsika_evt_header_total_energy
+        * corsika_event_header_total_energy
     '''
     if config:
         with open(config) as f:
@@ -45,7 +45,7 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
         gamma_path,
         key='events',
         columns=[
-            'corsika_evt_header_total_energy',
+            'corsika_event_header_total_energy',
             'gamma_prediction',
             'theta_deg'
         ],

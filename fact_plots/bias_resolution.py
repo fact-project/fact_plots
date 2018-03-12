@@ -10,7 +10,7 @@ def plot_bias_resolution(
         ax_bias=None,
         ax_resolution=None,
         prediction_key='gamma_energy_prediction',
-        true_energy_key='corsika_evt_header_total_energy',
+        true_energy_key='corsika_event_header_total_energy',
         std=False,
         ):
     '''

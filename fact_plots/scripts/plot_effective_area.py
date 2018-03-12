@@ -49,7 +49,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         analysis_output,
         key='events',
         columns=[
-            'corsika_evt_header_total_energy',
+            'corsika_event_header_total_energy',
             'gamma_prediction',
             'theta_deg'
         ]
@@ -76,7 +76,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
         plot_effective_area(
             all_events.energy,
-            selected.corsika_evt_header_total_energy,
+            selected.corsika_event_header_total_energy,
             bins=bins,
             impact=impact,
             sample_fraction=fraction,

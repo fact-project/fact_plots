@@ -33,7 +33,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
 
         GAMMA_PATH: hdf5 file containing the keys
             * gamma_energy_prediction
-            * corsika_evt_header_total_energy
+            * corsika_event_header_total_energy
             * gamma_prediction
             * theta_deg
     '''
@@ -46,7 +46,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, config, output, prelimi
         key='events',
         columns=[
             'gamma_energy_prediction',
-            'corsika_evt_header_total_energy',
+            'corsika_event_header_total_energy',
             'gamma_prediction',
             'theta_deg'
         ],
