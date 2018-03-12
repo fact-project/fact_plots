@@ -38,7 +38,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
         key='events',
         columns=[
             'gamma_energy_prediction',
-            'corsika_evt_header_total_energy',
+            'corsika_event_header_total_energy',
             'gamma_prediction',
             'theta_deg'
         ],
@@ -60,17 +60,17 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
 
     e_min = min(
         df.gamma_energy_prediction.min(),
-        df.corsika_evt_header_total_energy.min()
+        df.corsika_event_header_total_energy.min()
     )
     e_max = max(
         df.gamma_energy_prediction.max(),
-        df.corsika_evt_header_total_energy.max()
+        df.corsika_event_header_total_energy.max()
     )
 
     limits = np.log10([e_min, e_max])
 
     hist, xedges, yedges, plot = ax.hist2d(
-        np.log10(df.corsika_evt_header_total_energy.values),
+        np.log10(df.corsika_event_header_total_energy.values),
         np.log10(df.gamma_energy_prediction.values),
         bins=n_bins,
         range=[limits, limits],
