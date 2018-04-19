@@ -94,7 +94,6 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         )
         area_df["threshold"]=threshold
         area_df["theta2_cut"]=theta2_cut
-
         area_dfs.append(area_df)
 
     if preliminary:
@@ -118,7 +117,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         plt.savefig(output, dpi=300)
     else:
         plt.show()
-        
+
     if csvfile is not None:
         area_dfs = pd.concat(area_dfs)
         area_dfs.to_csv(csvfile,index=False)
