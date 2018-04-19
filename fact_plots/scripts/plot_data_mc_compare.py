@@ -13,6 +13,7 @@ from IPython import embed
 import gc
 import os
 import h5py
+from fact.io import read_data, write_data, check_extension
 
 from ..default_plots import default_plots
 from ..default_cuts import cuts as d_cuts
@@ -70,7 +71,12 @@ def loadData(datatupels, cuts):
         logger.info("loading: {}, key={}".format(datafile, tablename))
         df = pd.DataFrame()
         try:
-            df = pd.read_hdf(datafile, tablename)
+            df = read_data(
+                file_path=datafile,
+                key=tablename,
+                mode ='r'
+            )
+            # df = pd.read_hdf(datafile, tablename)
         except KeyError:
             f = h5py.File(datafile)
             keys = list(f.keys())
