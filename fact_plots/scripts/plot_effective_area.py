@@ -1,9 +1,7 @@
-import pandas as pd
 from fact.io import read_data
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-import h5py
 import yaml
 
 import click
@@ -19,7 +17,6 @@ plot_config = {
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
 }
-
 
 @click.command()
 @click.argument('CORSIKA_HEADERS')
@@ -43,7 +40,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
         with open(config) as f:
             plot_config.update(yaml.safe_load(f))
 
-    all_events = pd.read_hdf(corsika_headers, 'table')
+    all_events = read_data(corsika_headers, key='corsika_events')
 
     analysed = read_data(
         analysis_output,
@@ -58,8 +55,8 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
     impact = impact * u.m
 
     bins = np.logspace(
-        np.log10(all_events.energy.min()),
-        np.log10(all_events.energy.max()),
+        np.log10(all_events.total_energy.min()),
+        np.log10(all_events.total_energy.max()),
         n_bins + 1,
     )
 
@@ -75,7 +72,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
             label += r', $\theta^2 \leq {:.3g}\,\mathrm{{deg}}^2$'.format(theta2_cut)
 
         plot_effective_area(
-            all_events.energy,
+            all_events.total_energy,
             selected.corsika_event_header_total_energy,
             bins=bins,
             impact=impact,
@@ -96,8 +93,6 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
     plt.yscale('log')
     plt.xscale('log')
-
-    # plt.xlim(1e2, 1e5)
 
     plt.tight_layout(pad=0)
     if output is not None:
