@@ -53,7 +53,7 @@ def main(gamma_path, std, n_bins, threshold, config, output, only_correct, preli
         columns += ['gamma_prediction']
 
     if only_correct:
-        columns += ['true_disp']
+        columns += ['true_disp', 'disp_prediction']
 
     df = read_h5py(
         gamma_path,
