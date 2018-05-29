@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import yaml
 import numpy as np
 
-from fact.coordinates import horizontal_to_camera
-
 
 plot_config = {
     'xlabel': r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$',
