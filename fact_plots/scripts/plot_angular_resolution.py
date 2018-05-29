@@ -4,6 +4,9 @@ from ..plotting import add_preliminary
 from ..angular_resolution import plot_angular_resolution
 import matplotlib.pyplot as plt
 import yaml
+import numpy as np
+
+from fact.coordinates import horizontal_to_camera
 
 
 plot_config = {
@@ -13,7 +16,6 @@ plot_config = {
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
 }
-
 
 @click.command()
 @click.argument('gamma_path')
@@ -25,8 +27,9 @@ plot_config = {
 @click.option('--threshold', type=float)
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
+@click.option('--only-correct', is_flag=True, help='Show only events with correctly classified sgn(disp)')
 @click.option('--preliminary', is_flag=True, help='add preliminary')
-def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
+def main(gamma_path, std, n_bins, threshold, config, output, only_correct, preliminary):
     '''
     Plot the 68% containment radius for different energy bins
 
@@ -41,18 +44,29 @@ def main(gamma_path, std, n_bins, threshold, config, output, preliminary):
         with open(config) as f:
             plot_config.update(yaml.safe_load(f))
 
+    columns = [
+        'corsika_event_header_total_energy',
+        'theta_deg'
+    ]
+
+    if threshold is not None:
+        columns += ['gamma_prediction']
+
+    if only_correct:
+        columns += ['true_disp']
+
     df = read_h5py(
         gamma_path,
+        columns=columns,
         key='events',
-        columns=[
-            'corsika_event_header_total_energy',
-            'gamma_prediction',
-            'theta_deg'
-        ],
     )
 
     if threshold:
         df = df.query('gamma_prediction >= @threshold').copy()
+
+    if only_correct:
+        correct = np.sign(df['disp_prediction']) == np.sign(df['true_disp'])
+        df = df.loc[correct].copy()
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
