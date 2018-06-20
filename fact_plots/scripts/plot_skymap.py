@@ -1,7 +1,6 @@
 import click
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
-import pandas as pd
 import yaml
 from astropy.coordinates import SkyCoord
 
@@ -9,10 +8,8 @@ from fact.io import read_h5py
 
 from ..skymap import plot_skymap
 from ..plotting import add_preliminary
-from ..time import read_timestamp
 
 plot_config = {
-    'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
     'preliminary_position': 'lower center',
     'preliminary_size': 'xx-large',
     'preliminary_color': 'lightgray',
