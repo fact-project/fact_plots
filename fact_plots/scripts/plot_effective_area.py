@@ -25,6 +25,8 @@ plot_config = {
 @click.option('-t', '--threshold', type=float, default=[0.8], multiple=True, help='Prediction threshold to use')
 @click.option('--theta2-cut', type=float, default=[0.03], multiple=True, help='Theta squared cut to use')
 @click.option('--n-bins', type=int, default=20,  help='Number of bins for the area')
+@click.option('--e-low', type=float, help='Lower energy limit in GeV')
+@click.option('--e-high', type=float, help='Upper energy limit in GeV')
 @click.option(
     '-i',
     '--impact',
@@ -35,7 +37,20 @@ plot_config = {
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
 @click.option('--preliminary', is_flag=True, help='add preliminary')
-def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bins, impact, config, output, preliminary):
+def main(
+    corsika_headers,
+    analysis_output,
+    fraction,
+    threshold,
+    theta2_cut,
+    n_bins,
+    impact,
+    config,
+    output,
+    preliminary,
+    e_low,
+    e_high
+):
     if config:
         with open(config) as f:
             plot_config.update(yaml.safe_load(f))
@@ -54,11 +69,9 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
 
     impact = impact * u.m
 
-    bins = np.logspace(
-        np.log10(all_events.total_energy.min()),
-        np.log10(all_events.total_energy.max()),
-        n_bins + 1,
-    )
+    e_low = e_low or all_events.total_energy.min()
+    e_high = e_high or all_events.total_energy.max()
+    bins = np.logspace(np.log10(e_low), np.log10(e_high), n_bins + 1)
 
     assert len(theta2_cut) == len(threshold), 'Number of cuts has to be the same for theta and threshold'
 
@@ -94,7 +107,7 @@ def main(corsika_headers, analysis_output, fraction, threshold, theta2_cut, n_bi
     plt.yscale('log')
     plt.xscale('log')
 
-    plt.tight_layout(pad=0)
+    plt.tight_layout(pad=0.02)
     if output is not None:
         plt.savefig(output, dpi=300)
     else:

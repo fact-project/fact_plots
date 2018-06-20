@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 def plot_bias_resolution(
         df,
-        n_bins=10,
+        bins,
         ax_bias=None,
         ax_resolution=None,
         prediction_key='gamma_energy_prediction',
@@ -21,8 +21,8 @@ def plot_bias_resolution(
     df: pd.DataFrame
         DataFrame of simulated gamma events with columns `true_energy_key`
         and `prediction_key`
-    n_bins: int
-        number of bins in true energy
+    bins: array-like
+        bin edges
     ax_bias: matplotlib.axes.Axes
         axes for the bias plot
     ax_resolution: matplotlib.axes.Axes
@@ -38,12 +38,6 @@ def plot_bias_resolution(
 
     ax_bias = ax_bias or plt.gca()
     ax_res = ax_resolution or ax_bias.twinx()
-
-    bins = np.logspace(
-        np.log10(df[true_energy_key].min()),
-        np.log10(df[true_energy_key].max()),
-        n_bins + 1
-    )
 
     df['bin'] = np.digitize(df[true_energy_key], bins)
     df['rel_error'] = (df[prediction_key] - df[true_energy_key]) / df[true_energy_key]

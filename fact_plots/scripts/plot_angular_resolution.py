@@ -15,19 +15,36 @@ plot_config = {
     'preliminary_color': 'lightgray',
 }
 
+
 @click.command()
 @click.argument('gamma_path')
 @click.option(
     '--std', default=False, is_flag=True,
     help='Use std instead of inter-percentile distance',
 )
-@click.option('--n-bins', default=20, type=int)
 @click.option('--threshold', type=float)
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
-@click.option('--only-correct', is_flag=True, help='Show only events with correctly classified sgn(disp)')
+@click.option(
+    '--only-correct', is_flag=True,
+    help='Show only events with correctly classified sgn(disp)'
+)
 @click.option('--preliminary', is_flag=True, help='add preliminary')
-def main(gamma_path, std, n_bins, threshold, config, output, only_correct, preliminary):
+@click.option('--n-bins', type=int, default=20, help='Number of bins for the area')
+@click.option('--e-low', type=float, help='Lower energy limit in GeV')
+@click.option('--e-high', type=float, help='Upper energy limit in GeV')
+def main(
+    gamma_path,
+    std,
+    n_bins,
+    threshold,
+    config,
+    output,
+    only_correct,
+    preliminary,
+    e_low,
+    e_high,
+):
     '''
     Plot the 68% containment radius for different energy bins
 
@@ -78,7 +95,11 @@ def main(gamma_path, std, n_bins, threshold, config, output, only_correct, preli
             ax=ax,
         )
 
-    plot_angular_resolution(df, n_bins=n_bins, ax=ax)
+    e_low = e_low or df['corsika_event_header_total_energy'].min()
+    e_high = e_high or df['corsika_event_header_total_energy'].max()
+    bins = np.logspace(np.log10(e_low), np.log10(e_high), n_bins + 1)
+
+    plot_angular_resolution(df, bins=bins, ax=ax)
 
     ax.set_xlabel(plot_config['xlabel'])
     ax.set_ylabel(plot_config['ylabel'])
