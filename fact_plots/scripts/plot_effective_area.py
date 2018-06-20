@@ -11,7 +11,7 @@ from ..effective_area import plot_effective_area
 
 
 plot_config = {
-    'xlabel': r'$\log_{10}(E_\mathrm{true} \,\,/\,\, \mathrm{GeV})$',
+    'xlabel': r'$E_\mathrm{true} \,\,/\,\, \mathrm{GeV}$',
     'ylabel': r'$A_\mathrm{eff} \,\,/\,\, \mathrm{m}^2$',
     'preliminary_position': 'upper left',
     'preliminary_size': 20,

@@ -8,7 +8,7 @@ import numpy as np
 
 
 plot_config = {
-    'xlabel': r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$',
+    'xlabel': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
     'preliminary_position': 'upper right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
