@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 
 
 def plot_angular_resolution(
-        df,
-        n_bins=10,
-        ax=None,
-        theta_key='theta_deg',
-        true_energy_key='corsika_event_header_total_energy',
-        min_bin_count=200,
-        **kwargs
-        ):
+    df,
+    bins,
+    ax=None,
+    theta_key='theta_deg',
+    true_energy_key='corsika_event_header_total_energy',
+    min_bin_count=200,
+    **kwargs
+):
     '''
     Plot the angular resolution from a dataframe of simulated
     gamma ray events.
@@ -34,13 +34,9 @@ def plot_angular_resolution(
 
     ax = ax or plt.gca()
 
-    bins = np.logspace(
-        np.log10(df[true_energy_key].min()) - 1e-12,
-        np.log10(df[true_energy_key].max()) + 1e-12,
-        n_bins + 1
-    )
-
     df['bin'] = np.digitize(df[true_energy_key], bins)
+    df.drop(df[df['bin'] == len(bins)].index, axis=0, inplace=True)
+    df.drop(df[df['bin'] == 0].index, axis=0, inplace=True)
 
     binned = pd.DataFrame(index=np.arange(1, len(bins)))
     binned['center'] = 0.5 * (bins[:-1] + bins[1:])
@@ -51,7 +47,7 @@ def plot_angular_resolution(
     values = []
     for i in range(100):
         sampled = df.sample(len(df), replace=True).groupby('bin')
-        resolution = np.full(n_bins, np.nan)
+        resolution = np.full(len(bins) - 1, np.nan)
         s = sampled[theta_key].agg(lambda s: np.percentile(s.values, 68))
 
         resolution[s.index.values - 1] = s.values

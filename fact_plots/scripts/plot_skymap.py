@@ -1,7 +1,6 @@
 import click
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
-import pandas as pd
 import yaml
 from astropy.coordinates import SkyCoord
 
@@ -9,13 +8,13 @@ from fact.io import read_h5py
 
 from ..skymap import plot_skymap
 from ..plotting import add_preliminary
-from ..time import read_timestamp
 
 plot_config = {
-    'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',
     'preliminary_position': 'lower center',
     'preliminary_size': 'xx-large',
     'preliminary_color': 'lightgray',
+    'source_color': 'lightgray',
+    'source_size': 10,
 }
 
 columns = [
@@ -33,8 +32,9 @@ columns = [
 @click.option('--preliminary', is_flag=True, help='Add preliminary')
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output', help='(optional) Output file for the plot')
-@click.option('-s', '--source', help='Name of the source show')
-def main(data_path, threshold, key, bins, width, preliminary, config, output, source):
+@click.option('-n', '--source-name', help='Name of the source show')
+@click.option('-s', '--source', type=(str, str), help='RA and DEC of the source')
+def main(data_path, threshold, key, bins, width, preliminary, config, output, source_name, source):
     '''
     Plot a 2d histogram of the origin of the air showers in the
     given hdf5 file in ra, dec.
@@ -56,8 +56,16 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='5%', pad=0.05)
 
-    if source:
-        coord = SkyCoord.from_name(source)
+    if source and source_name:
+        coord = SkyCoord(ra=source[0], dec=source[1])
+        label = source_name
+    elif source_name:
+        coord = SkyCoord.from_name(source_name)
+        label = source_name
+    else:
+        coord = None
+
+    if coord:
         center_ra = coord.ra.deg
         center_dec = coord.dec.deg
     else:
@@ -72,18 +80,19 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
         ax=ax,
     )
 
-    if source:
+    if coord:
         ax.plot(
             center_ra,
             center_dec,
-            label=source,
-            color='r',
+            label=label,
+            color=plot_config['source_color'],
             marker='o',
             linestyle='',
-            markersize=10,
+            markersize=plot_config['source_size'],
             markerfacecolor='none',
         )
-        ax.legend()
+        if label:
+            ax.legend(framealpha=0.5, markerscale=0.5)
 
     fig.colorbar(img, cax=cax, label='Gamma-Like Events')
 
