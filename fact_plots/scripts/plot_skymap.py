@@ -33,8 +33,8 @@ columns = [
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output', help='(optional) Output file for the plot')
 @click.option('-n', '--source-name', help='Name of the source show')
-@click.option('-s', '--source', type=click.Tuple([str, str]), help='RA and DEC of the source')
-def main(data_path, threshold, key, bins, width, preliminary, config, output, source, source_name):
+@click.option('-s', '--source', type=(str, str), help='RA and DEC of the source')
+def main(data_path, threshold, key, bins, width, preliminary, config, output, source_name, source):
     '''
     Plot a 2d histogram of the origin of the air showers in the
     given hdf5 file in ra, dec.
@@ -56,10 +56,12 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='5%', pad=0.05)
 
-    if source:
+    if source and source_name:
         coord = SkyCoord(ra=source[0], dec=source[1])
+        label = source_name
     elif source_name:
-        coord = SkyCoord.from_name(source)
+        coord = SkyCoord.from_name(source_name)
+        label = source_name
     else:
         coord = None
 
@@ -82,14 +84,15 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
         ax.plot(
             center_ra,
             center_dec,
-            label=source,
+            label=label,
             color=plot_config['source_color'],
             marker='o',
             linestyle='',
             markersize=plot_config['source_size'],
             markerfacecolor='none',
         )
-        ax.legend()
+        if label:
+            ax.legend(framealpha=0.5, markerscale=0.5)
 
     fig.colorbar(img, cax=cax, label='Gamma-Like Events')
 
