@@ -87,7 +87,7 @@ def main(gamma_path, std, n_bins, e_low, e_high, threshold, theta2_cut, config, 
 
     ax_res.set_ylim(*ax_bias.get_ylim())
 
-    fig.tight_layout(pad=0.02)
+    fig.tight_layout(pad=0.05)
 
     if output:
         fig.savefig(output, dpi=300)
