@@ -15,6 +15,12 @@ plot_config = {
     'preliminary_color': 'lightgray',
     'source_color': 'lightgray',
     'source_size': 10,
+    'legend_font_color': 'lightgray',
+    'legend': {
+        'facecolor': '0.3',
+        'edgecolor': '0.3',
+        'markerscale': 0.5,
+    }
 }
 
 columns = [
@@ -92,7 +98,10 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
             markerfacecolor='none',
         )
         if label:
-            ax.legend(framealpha=0.5, markerscale=0.5)
+            l = ax.legend(**plot_config['legend'])
+            if plot_config['legend_font_color']:
+                for t in l.get_texts():
+                    t.set_color(plot_config['legend_font_color'])
 
     fig.colorbar(img, cax=cax, label='Gamma-Like Events')
 
