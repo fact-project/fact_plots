@@ -8,7 +8,8 @@ import numpy as np
 
 
 plot_config = {
-    'xlabel': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
+    'xlabel_true': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
+    'xlabel_est': r'$E_\mathrm{est} \,\, / \,\, \mathrm{GeV}$',
     'preliminary_position': 'upper right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
@@ -29,7 +30,8 @@ plot_config = {
 @click.option('-c', '--config', help='Path to yaml config file')
 @click.option('-o', '--output')
 @click.option('--preliminary', is_flag=True, help='add preliminary')
-def main(gamma_path, std, n_bins, e_low, e_high, threshold, theta2_cut, config, output, preliminary):
+@click.option('--estimated', is_flag=True, help='Plot vs. estimated energy')
+def main(gamma_path, std, n_bins, e_low, e_high, threshold, theta2_cut, config, output, preliminary, estimated):
     ''' Plot energy bias and resolution for simulated gamma ray events vs true energy
 
     ARGUMENTS:
@@ -77,15 +79,25 @@ def main(gamma_path, std, n_bins, e_low, e_high, threshold, theta2_cut, config, 
     bins = np.logspace(np.log10(e_low), np.log10(e_high), n_bins + 1)
 
     ax_bias, ax_res = plot_bias_resolution(
-        df, bins=bins, std=std, ax_bias=ax
+        df, bins=bins, std=std, ax_bias=ax,
+        estimated=estimated
     )
 
-    ax_bias.set_xlabel(plot_config['xlabel'])
+    if estimated:
+        ax_bias.set_xlabel(plot_config['xlabel_est'])
+    else:
+        ax_bias.set_xlabel(plot_config['xlabel_true'])
 
     ax_bias.set_ylabel('Bias', color='C0')
     ax_res.set_ylabel('Resolution', color='C1')
 
-    ax_res.set_ylim(*ax_bias.get_ylim())
+    l1, h1 = ax_bias.get_ylim()
+    l2, h2 = ax_res.get_ylim()
+    l = min(l1, l2)
+    h = max(h1, h2)
+
+    ax_res.set_ylim(l, h)
+    ax_bias.set_ylim(l, h)
 
     fig.tight_layout(pad=0.05)
 

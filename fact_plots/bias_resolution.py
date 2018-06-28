@@ -11,6 +11,7 @@ def plot_bias_resolution(
         ax_resolution=None,
         prediction_key='gamma_energy_prediction',
         true_energy_key='corsika_event_header_total_energy',
+        estimated=False,
         std=False,
         ):
     '''
@@ -29,17 +30,23 @@ def plot_bias_resolution(
         axes for the resolion plot
     prediction_key: str
         Column name for the energy prediction
+    true_energy_key: str
+        Column name for the true energy
+    estimated: bool
+        plot vs estimated instead of true energy
     std: bool
         If True, use standard deviation instead of 1-sigma percentiles
         to calculate resolution
-    true_energy_key: str
-        Column name for the true energy
     '''
 
     ax_bias = ax_bias or plt.gca()
     ax_res = ax_resolution or ax_bias.twinx()
 
-    df['bin'] = np.digitize(df[true_energy_key], bins)
+    if estimated:
+        df['bin'] = np.digitize(df[prediction_key], bins)
+    else:
+        df['bin'] = np.digitize(df[true_energy_key], bins)
+
     df['rel_error'] = (df[prediction_key] - df[true_energy_key]) / df[true_energy_key]
 
     binned = pd.DataFrame(index=np.arange(1, len(bins)))
