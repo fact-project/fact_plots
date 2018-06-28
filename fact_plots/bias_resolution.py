@@ -59,7 +59,7 @@ def plot_bias_resolution(
 
     for i in tqdm(range(100)):
         grouped = df.sample(len(df), replace=True).groupby('bin')
-        bias.append(grouped['rel_error'].mean())
+        bias.append(grouped['rel_error'].median())
         lower_sigma = grouped['rel_error'].agg(lambda s: np.percentile(s, 15.87))
         upper_sigma = grouped['rel_error'].agg(lambda s: np.percentile(s, 84.13))
         resolution_quantiles.append(0.5 * (upper_sigma - lower_sigma))
