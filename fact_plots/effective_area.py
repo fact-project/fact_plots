@@ -7,14 +7,14 @@ from irf.collection_area import collection_area
 
 @u.quantity_input(impace=u.meter)
 def plot_effective_area(
-        all_events,
-        selected_events,
-        impact,
-        bins=10,
-        sample_fraction=1.0,
-        ax=None,
-        **kwargs
-        ):
+    all_events,
+    selected_events,
+    impact,
+    bins=10,
+    sample_fraction=1.0,
+    ax=None,
+    **kwargs
+):
 
     ax = ax or plt.gca()
 

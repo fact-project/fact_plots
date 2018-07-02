@@ -16,6 +16,7 @@ plot_config = {
     'preliminary_position': 'right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
+    'legend_loc': 'center right'
 }
 
 columns = [
@@ -193,7 +194,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
 
     ax.set_xlim(*limits)
     ax.set_xlabel(plot_config['xlabel'])
-    ax.legend(loc='lower right')
+    ax.legend(loc=plot_config['legend_loc'])
     fig.tight_layout(pad=0)
 
     if output:
