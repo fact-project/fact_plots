@@ -4,9 +4,7 @@ from fact import plotting
 from fact.io import read_h5py
 import pandas as pd
 from dateutil.parser import parse
-import numpy as np
 
-import h5py
 import matplotlib.pyplot as plt
 import click
 from functools import partial
@@ -68,14 +66,6 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
     'klaas_apply_separation_model' for example.
     '''
 
-    with h5py.File(data_path, 'r') as f:
-        source_dependent = 'gamma_prediction_off_1' in f[key].keys()
-
-    if source_dependent:
-        print('Separation was using source dependent features')
-        columns.extend('gamma_prediction_off_' + str(i) for i in range(1, 6))
-        theta2_cut = np.inf
-
     events = read_h5py(data_path, key='events', columns=columns)
 
     runs = read_h5py(data_path, key='runs')
@@ -89,19 +79,12 @@ def main(data_path, threshold, theta2_cut, key, binning, alpha, start, end, onti
         end = parse(end)
         runs = runs.query('run_stop <= @end')
 
-    if source_dependent:
-        summary = analysis.calc_run_summary_source_dependent(
-            events,
-            runs,
-            prediction_threshold=threshold,
-        )
-    else:
-        summary = analysis.calc_run_summary_source_independent(
-            events,
-            runs,
-            prediction_threshold=threshold,
-            theta2_cut=theta2_cut,
-        )
+    summary = analysis.calc_run_summary_source_independent(
+        events,
+        runs,
+        prediction_threshold=threshold,
+        theta2_cut=theta2_cut,
+    )
 
     if binning == 'nightly':
         binning_function = fact.analysis.binning.nightly_binning

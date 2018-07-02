@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from fact.coordinates import camera_to_equatorial
 
 
 def plot_skymap(df, width=4, bins=100, center_ra=None, center_dec=None, ax=None):
@@ -26,13 +25,8 @@ def plot_skymap(df, width=4, bins=100, center_ra=None, center_dec=None, ax=None)
     '''
     ax = ax or plt.gca()
 
-    ra, dec = camera_to_equatorial(
-        df['reconstructed_source_position_0'],
-        df['reconstructed_source_position_1'],
-        df['zd_tracking'],
-        df['az_tracking'],
-        df['time'],
-    )
+    ra = df['ra_prediction']
+    dec = df['dec_prediction']
 
     if center_ra is None:
         center_ra = ra.mean()
@@ -51,7 +45,7 @@ def plot_skymap(df, width=4, bins=100, center_ra=None, center_dec=None, ax=None)
         ],
     )
 
-    ax.set_xlabel('right ascencion / degree')
+    ax.set_xlabel('right ascension / degree')
     ax.set_ylabel('declination / degree')
     ax.set_aspect(1)
 

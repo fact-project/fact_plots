@@ -11,8 +11,8 @@ from ..plotting import add_preliminary
 plot_config = {
     'cmap': None,
     'logz': True,
-    'xlabel': r'$\log_{10}(E_\mathrm{true} \,\, / \,\, \mathrm{GeV})$',
-    'ylabel': r'$\log_{10}(E_\mathrm{est} \,\, / \,\, \mathrm{GeV})$',
+    'xlabel': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
+    'ylabel': r'$E_\mathrm{est} \,\, / \,\, \mathrm{GeV}$',
     'preliminary_position': 'lower right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
@@ -38,7 +38,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
         key='events',
         columns=[
             'gamma_energy_prediction',
-            'corsika_evt_header_total_energy',
+            'corsika_event_header_total_energy',
             'gamma_prediction',
             'theta_deg'
         ],
@@ -58,25 +58,33 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='5%', pad=0.025)
 
+    ax.set_aspect(1)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
     e_min = min(
         df.gamma_energy_prediction.min(),
-        df.corsika_evt_header_total_energy.min()
+        df.corsika_event_header_total_energy.min()
     )
     e_max = max(
         df.gamma_energy_prediction.max(),
-        df.corsika_evt_header_total_energy.max()
+        df.corsika_event_header_total_energy.max()
     )
 
     limits = np.log10([e_min, e_max])
+    bins = np.logspace(limits[0], limits[1], n_bins + 1)
 
-    hist, xedges, yedges, plot = ax.hist2d(
-        np.log10(df.corsika_evt_header_total_energy.values),
-        np.log10(df.gamma_energy_prediction.values),
-        bins=n_bins,
-        range=[limits, limits],
+    hist, xedges, yedges = np.histogram2d(
+        df.corsika_event_header_total_energy.values,
+        df.gamma_energy_prediction.values,
+        bins=bins,
+    )
+    plot = ax.pcolormesh(
+        xedges, yedges, hist.T,
         norm=LogNorm() if plot_config['logz'] else None,
         cmap=plot_config['cmap'],
     )
+    plot.set_rasterized(True)
 
     fig.colorbar(plot, cax=cax)
 
@@ -87,8 +95,6 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
             color=plot_config['preliminary_color'],
             ax=ax,
         )
-
-    ax.set_aspect(1)
 
     ax.set_xlabel(plot_config['xlabel'])
     ax.set_ylabel(plot_config['ylabel'])
