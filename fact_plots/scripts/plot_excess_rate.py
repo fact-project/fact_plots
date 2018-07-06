@@ -38,7 +38,12 @@ columns = [
 @click.option('--threshold', type=float, help='prediction threshold', default=0.8, show_default=True)
 @click.option('--theta2-cut', type=float, help='cut for theta^2 in deg^2', default=0.03, show_default=True)
 @click.option('--key', help='Key for the hdf5 group', default='events')
-@click.option('--binning', help='Ontime in one bin in minutes', default='20', show_default=True)
+@click.option(
+    '--binning',
+    help='Ontime in one bin in minutes or "nightly" for nightly binning',
+    default='20',
+    show_default=True
+)
 @click.option('--alpha', help='Ratio of on vs off region', default=0.2, show_default=True)
 @click.option('--start', help='Date of first observation YYYY-MM-DD HH:SS or anything parseable by dateutil')
 @click.option('--end', help='Date of first observation YYYY-MM-DD HH:SS or anything parseable by dateutil')
