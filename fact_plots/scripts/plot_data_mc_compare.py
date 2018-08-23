@@ -13,6 +13,7 @@ from IPython import embed
 import gc
 import os
 import h5py
+import atexit
 from fact.io import read_data
 
 from ..default_plots import default_plots
@@ -120,10 +121,11 @@ def loadData(datatupels, columns, cuts):
     return df_list, datafiles, scales, labels, sorted(common_keys)
 
 
-def mkDirAtDestination(outputfile):
-    fname = os.path.basename(outputfile).split(".")[0]
-    dirname = os.path.dirname(outputfile)
-    path = os.path.join(dirname, fname)
+def mkDirAtDestination(output_path):
+    # fname = os.path.basename(output_path).split(".")[0]
+    # dirname = os.path.dirname(output_path)
+    # path = os.path.join(dirname, fname)
+    path = output_path
     if not os.path.exists(path):
         os.mkdir(path)
     return path
@@ -141,12 +143,13 @@ def calcDataRange(df_list, key):
 
 
 @click.command()
-@click.argument('outputfile', type=click.Path(exists=False, dir_okay=True, file_okay=True))
+@click.argument('output_path', type=click.Path(exists=False, dir_okay=True, file_okay=True))
 @click.option('--datatupels', '-d', multiple=True, nargs=4, type=click.Tuple([click.Path(exists=True, dir_okay=True), click.STRING, click.FLOAT, click.STRING]), help='tupels of: path to hdf5 file, table name, scale, label')
 @click.option('--ignorekeys', '-i', type=click.STRING, default=None, help='comma seperated list of keys to ignore')
 @click.option('--cuts', '-c', type=click.STRING, default=None, help='cuts for the pandas data frame as comma separated list')
 @click.option('--default_cuts', type=click.STRING, default=None, help="choose predefined default cuts as comma separted list e.g. qualitycuts, precuts")
-def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
+@click.option('--pdf', is_flag=True)
+def main(output_path, datatupels, ignorekeys, cuts, default_cuts, pdf):
     '''Plot Data MonteCarlo comparison plots from HDF5 files'''
 
     cuts = aggregatePlottingCuts(cuts, default_cuts)
@@ -160,105 +163,119 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
         for key in ignorekeys:
             logger.info("skipping column{}: on ignore list".format(key))
 
-    picturePath = mkDirAtDestination(outputfile)
+    picturePath = mkDirAtDestination(output_path)
+    
+    if pdf:
+        pdf_path = os.path.join(picturePath, "summary.pdf")
+        logger.info("Storing summary of plots to pdf: {}".format(pdf_path))
+        pdf_file = PdfPages(pdf_path)
+        
+        @atexit.register
+        def exit_handler():
+            logger.info("closing pdf file")
+            pdf_file.close()
+        
+    # with PdfPages(os.path.join(picturePath, os.path.basename(output_path))) as pdf_file:
+    logger.info("\nList of Keys:")
+    for key in common_keys:
+        logger.info(key)
 
-    with PdfPages(os.path.join(picturePath, os.path.basename(outputfile))) as pdf:
-        logger.info("\nList of Keys:")
-        for key in common_keys:
-            logger.info(key)
+        # skip tuples
+        if isinstance(df_list[0][key].iloc[0], (list, tuple)):
+            logger.info("skipping column {}: cannot interprete content".format(key))
+            continue
 
-            # skip tuples
-            if isinstance(df_list[0][key].iloc[0], (list, tuple)):
-                logger.info("skipping column {}: cannot interprete content".format(key))
+        fig = plt.figure()
+        plt.title(key)
+        plot_option = None
+        if key in default_plots:
+            plot_option = default_plots[key]
+
+            if plot_option is False:
+                plt.close()
                 continue
 
-            fig = plt.figure()
-            plt.title(key)
-            plot_option = None
-            if key in default_plots:
-                plot_option = default_plots[key]
+            data_range = calcDataRange(df_list, key)
 
-                if plot_option is False:
-                    plt.close()
-                    continue
+            gc.collect()
+            logger.info(default_plot_option)
 
-                data_range = calcDataRange(df_list, key)
+            xlabel = key
+            func = None
+            xUnit = ""
 
-                gc.collect()
-                logger.info(default_plot_option)
+            if plot_option is None:
+                plot_option = default_plot_option
+            else:
+                # embed()
+                func = plot_option["func"]
+                xUnit = plot_option["xUnit"]
+                xlabel += " / " + xUnit
 
-                xlabel = key
-                func = None
-                xUnit = ""
-
-                if plot_option is None:
-                    plot_option = default_plot_option
-                else:
+                if func and func.__name__ and "lambda" not in func.__name__:
                     # embed()
-                    func = plot_option["func"]
-                    xUnit = plot_option["xUnit"]
-                    xlabel += " / " + xUnit
+                    func_name = str(func.__name__)
+                    logger.info("Function: {}({})".format(func_name, key))
+                    xlabel = func_name+"({})".format(xlabel)
 
-                    if func and func.__name__ and "lambda" not in func.__name__:
-                        # embed()
-                        func_name = str(func.__name__)
-                        logger.info("Function: {}({})".format(func_name, key))
-                        xlabel = func_name+"({})".format(xlabel)
+                del plot_option["func"]
+                del plot_option["xUnit"]
 
-                    del plot_option["func"]
-                    del plot_option["xUnit"]
+                plot_option = merge_dicts(default_plot_option, plot_option)
+                try:
+                    if "bins" and "range" in plot_option:
+                        if not plot_option["range"] == None:
+                            plot_option["bins"] = np.linspace(*plot_option["range"], plot_option["bins"])
+                        else:
+                            plot_option["bins"] = np.linspace(*data_range, plot_option["bins"])
+                except:
+                    embed()
 
-                    plot_option = merge_dicts(default_plot_option, plot_option)
-                    try:
-                        if "bins" and "range" in plot_option:
-                            if not plot_option["range"] == None:
-                                plot_option["bins"] = np.linspace(*plot_option["range"], plot_option["bins"])
-                            else:
-                                plot_option["bins"] = np.linspace(*data_range, plot_option["bins"])
-                    except:
-                        embed()
+            for df, scale, label, c in zip(df_list, scales, labels, color_cycle()):
+                data = df[key]
 
-                for df, scale, label, c in zip(df_list, scales, labels, color_cycle()):
-                    data = df[key]
+                if func:
+                    data = func(data)
 
-                    if func:
-                        data = func(data)
+                try:
+                    # plt.hist(data.values, label=df["filename"].iloc[0], normed=scale, color=c["color"], **plot_option)
+                    ax = fig.gca()
+                    ax.grid(True)
+                    x, y, norm = histpoints(data.values, xerr='binwidth', yerr="sqrt", label=label,
+                                            fmt='none', capsize=0, normed=scale, ecolor=c["color"], **plot_option)
+                    ax.fill_between(x, y[1], 0, alpha=0.2, linewidth=0.01, step='mid', facecolor=c["color"])
+                    if "log" in plot_option:
+                        if plot_option["log"]:
+                            ax.set_yscale("log", nonposy='clip')
+                    if "range" in plot_option:
+                        ax.set_xlim(plot_option["range"])
 
-                    try:
-                        # plt.hist(data.values, label=df["filename"].iloc[0], normed=scale, color=c["color"], **plot_option)
-                        ax = fig.gca()
-                        ax.grid(True)
-                        x, y, norm = histpoints(data.values, xerr='binwidth', yerr="sqrt", label=label,
-                                                fmt='none', capsize=0, normed=scale, ecolor=c["color"], **plot_option)
-                        ax.fill_between(x, y[1], 0, alpha=0.2, linewidth=0.01, step='mid', facecolor=c["color"])
-                        if "log" in plot_option:
-                            if plot_option["log"]:
-                                ax.set_yscale("log", nonposy='clip')
-                        if "range" in plot_option:
-                            ax.set_xlim(plot_option["range"])
-
-                    except Exception:
-                        logger.exception("Plotting failed for {} in file {}".format(key, df["filename"]))
+                except Exception:
+                    logger.exception("Plotting failed for {} in file {}".format(key, df["filename"]))
+                    # embed()
 
 
-                    plt.xlabel(xlabel)
-                    plt.ylabel("Frequency")
+                plt.xlabel(xlabel)
+                plt.ylabel("Frequency")
 
-                plt.legend(loc='best')
+            plt.legend(loc='best')
 
-                plt.savefig(os.path.join(picturePath, key+".png"))
-                # plt.show()
-                pdf.savefig()
+            plt.savefig(os.path.join(picturePath, key+".png"))
+            # plt.show()
+            
+            if pdf:
+                pdf_file.savefig()
 
-                plt.close()
                 # We can also set the file's metadata via the PdfPages object:
-                d = pdf.infodict()
+                d = pdf_file.infodict()
                 d['Title'] = 'Data MC Comparison plots'
                 d['Author'] = u'Jens Buss'
                 d['Subject'] = 'Comparison'
                 d['Keywords'] = 'Data:{}\nCuts:{}'.format(str(", ".join(datafiles)), str(cuts))
                 d['CreationDate'] = datetime.datetime.today()
                 d['ModDate'] = datetime.datetime.today()
+                
+            plt.close()
 
 
 if __name__ == '__main__':
