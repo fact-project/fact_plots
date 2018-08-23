@@ -66,6 +66,20 @@ def getCommonColumns(datatupels):
             else:
                 common_columns = set(common_columns).intersection(columns)
     return common_columns
+    
+def getColumnsUnion(datatupels):
+    """Loop over data tupels and get a list of with the union of all columns"""
+    union_columns = None
+    
+    for i, (datafile, tablename, scale, label) in enumerate(datatupels):
+        logger.info("loading: {}, key={}".format(datafile, tablename))
+        with h5py.File(datafile) as f:
+            columns = list(f[tablename].keys())
+            if union_columns == None:
+                union_columns = set(columns)
+            else:
+                union_columns = set(union_columns).union(columns)
+    return union_columns
 
 def loadData(datatupels, columns, cuts):
     datafiles = []
