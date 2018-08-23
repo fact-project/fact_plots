@@ -53,8 +53,21 @@ def aggregatePlottingCuts(cuts, default_cuts):
 
     return cuts
 
+def getCommonColumns(datatupels):
+    """Loop over data tupels and get a list of common columns"""
+    common_columns = None
+    
+    for i, (datafile, tablename, scale, label) in enumerate(datatupels):
+        logger.info("loading: {}, key={}".format(datafile, tablename))
+        with h5py.File(datafile) as f:
+            columns = list(f[tablename].keys())
+            if common_columns == None:
+                common_columns = set(columns)
+            else:
+                common_columns = set(common_columns).intersection(columns)
+    return common_columns
 
-def loadData(datatupels, cuts):
+def loadData(datatupels, columns, cuts):
     datafiles = []
     df_list = []
     scales = []
@@ -123,8 +136,10 @@ def main(outputfile, datatupels, ignorekeys, cuts, default_cuts):
     '''Plot Data MonteCarlo comparison plots from HDF5 files'''
 
     cuts = aggregatePlottingCuts(cuts, default_cuts)
-
-    df_list, datafiles, scales, labels, common_keys = loadData(datatupels, cuts)
+    
+    common_keys = getCommonColumns(datatupels)
+ 
+    df_list, datafiles, scales, labels, common_keys = loadData(datatupels, common_keys, cuts)
 
     if ignorekeys != None:
         common_keys = set(common_keys).difference(ignorekeys)
