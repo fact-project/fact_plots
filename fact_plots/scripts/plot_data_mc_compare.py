@@ -30,7 +30,6 @@ def calc_limis(arrays):
     p99 = max(np.nanpercentile(a, 99.9) for a in arrays)
 
     r = max_x - min_x
-    print(abs(max_x - p99) / r)
 
     if abs(max_x - p99) > (0.1 * r):
         max_x = p99
