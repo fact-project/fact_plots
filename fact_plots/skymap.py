@@ -44,6 +44,7 @@ def plot_skymap(df, width=4, bins=100, center_ra=None, center_dec=None, ax=None)
             [center_dec - width / 2, center_dec + width / 2]
         ],
     )
+    img.set_rasterized(True)
 
     ax.set_xlabel('right ascension / degree')
     ax.set_ylabel('declination / degree')
