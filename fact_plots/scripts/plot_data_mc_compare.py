@@ -17,7 +17,7 @@ def wrap_angle(angle):
         angle[angle < 0] += 360
 
     while np.any(angle > 360):
-        angle[angle < 0] -= 360
+        angle[angle > 360] -= 360
 
     return angle
 
@@ -47,16 +47,20 @@ def plot_hists(
     key,
     n_bins=100,
     limits=None,
-    transform=lambda x: x,
+    transform=None,
     xlabel=None,
     yscale='linear',
     ax=None,
 ):
-
     if ax is None:
         ax = plt.gca()
 
-    trans = {k: transform(df[key].values) for k, df in dfs.items()}
+    trans = {}
+    for k, df in dfs.items():
+        if transform is None:
+            trans[k] = df[key]
+        else:
+            trans[k] = transform(df[key].values)
 
     if limits is None:
         limits = calc_limis(trans.values())
@@ -118,7 +122,12 @@ def main(config, outputfile):
     # select columns
     columns = config.get('include_columns')
     if columns is not None:
-        common_columns = common_columns.intersection(columns)
+        def included(column):
+            return any(
+                fnmatch(column, include)
+                for include in columns
+            )
+        common_columns = list(filter(included, common_columns))
 
     columns = sorted(list(common_columns), key=str.lower)
 
@@ -152,7 +161,11 @@ def main(config, outputfile):
                     print(f'{l: <15}', f'{df["weight"].sum() / 3600:.1f} Events/s')
 
             ax_hist.cla()
-            plot_hists(dfs, column, ax=ax_hist, **kwargs)
+            try:
+                plot_hists(dfs, column, ax=ax_hist, **kwargs)
+            except Exception as e:
+                print(f'Could not plot column {column}')
+                print(e)
 
             pdf.savefig(fig)
 
