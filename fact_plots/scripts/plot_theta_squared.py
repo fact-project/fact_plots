@@ -117,22 +117,26 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
 
     del events
 
-    limits = [0, 0.3]
+    max_theta2 = 0.3
+    width = max_theta2 / bins
+    rounded_width = theta2_cut / np.round(theta2_cut / width)
+    bins = np.arange(0, max_theta2 + 0.1 * rounded_width, rounded_width)
+
+    print('Using {} bins to get theta_cut on a bin edge'.format(len(bins) - 1))
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     h_on, bin_edges = np.histogram(
         theta_on.apply(lambda x: x**2).values,
         bins=bins,
-        range=limits
     )
     h_off, bin_edges, _ = ax.hist(
         theta_off.apply(lambda x: x**2).values,
         bins=bin_edges,
-        range=limits,
         weights=np.full(len(theta_off), 0.2),
         histtype='stepfilled',
         color='lightgray',
+        zorder=0,
     )
 
     bin_center = bin_edges[1:] - np.diff(bin_edges) * 0.5
@@ -141,18 +145,20 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     ax.errorbar(
         bin_center,
         h_on,
-        yerr=np.sqrt(h_on) / 2,
+        yerr=np.sqrt(h_on),
         xerr=bin_width / 2,
         linestyle='',
         label='On',
     )
+
     ax.errorbar(
         bin_center,
         h_off,
-        yerr=alpha * np.sqrt(h_off) / 2,
+        yerr=alpha * np.sqrt(h_off),
         xerr=bin_width / 2,
         linestyle='',
         label='Off',
+        zorder=1
     )
 
     ax.axvline(theta_cut**2, color='black', alpha=0.3, linestyle='--')
@@ -191,7 +197,7 @@ def main(data_path, threshold, theta2_cut, key, bins, alpha, start, end, prelimi
     if ymax:
         ax.set_ylim(0, ymax)
 
-    ax.set_xlim(*limits)
+    ax.set_xlim(0, bins.max())
     ax.set_xlabel(plot_config['xlabel'])
     ax.legend(loc='lower right')
     fig.tight_layout(pad=0)
