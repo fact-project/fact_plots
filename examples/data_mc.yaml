@@ -1,0 +1,49 @@
+datasets:
+    - label: crab
+      path: crab.hdf5
+      kind: observations
+
+    - label: proton
+      path: proton.hdf5
+      kind: protons
+      sample_fraction: 0.7
+      n_showers: 720
+      spectral_index: -2.7
+      max_impact: 400
+      viewcone: 5
+      e_min: 100
+      e_max: 200000
+
+exclude_columns:
+    - fluct_*
+    - ped_*
+    - "*pedestal_*"
+
+columns:
+
+    size:
+        transform: np.log10
+        yscale: log
+
+    width:
+        limits: [0, 30]
+
+    num_islands:
+        limits: [0.5, 11.5]
+        n_bins: 11
+        yscale: log
+
+    leakage1:
+        yscale: log
+
+    leakage2:
+        yscale: log
+
+    aux_pointing_position_az:
+        transform: wrap_angle
+
+    pointing_position_az:
+        transform: wrap_angle
+
+    source_position_az:
+        transform: wrap_angle
