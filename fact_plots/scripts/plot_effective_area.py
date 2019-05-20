@@ -18,6 +18,7 @@ plot_config = {
     'preliminary_color': 'lightgray',
 }
 
+
 @click.command()
 @click.argument('CORSIKA_HEADERS')
 @click.argument('ANALYSIS_OUTPUT')
@@ -80,7 +81,7 @@ def main(
             '(gamma_prediction >= @threshold) & (theta_deg**2 <= @theta2_cut)'
         ).copy()
 
-        label = r'$\mathtt{{gamma\_prediction}} \geq {}$'.format(threshold)
+        label = r'$p_\gamma \geq {}$'.format(threshold)
         if theta2_cut != np.inf:
             label += r', $\theta^2 \leq {:.3g}\,\mathrm{{deg}}^2$'.format(theta2_cut)
 
