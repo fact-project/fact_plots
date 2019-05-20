@@ -75,6 +75,7 @@ def main(
     if impact is None:
         simulated_spectrum = read_simulated_spectrum(corsika_headers)
         impact = simulated_spectrum['x_scatter']
+        print('Using max_impact of', impact)
     else:
         impact = impact * u.m
 
