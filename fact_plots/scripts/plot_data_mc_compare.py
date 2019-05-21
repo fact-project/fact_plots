@@ -1,5 +1,5 @@
 from fact.io import read_h5py
-from fact.analysis.statistics import calc_proton_obstime
+from fact.analysis.statistics import calc_proton_obstime, calc_weight_change_index
 import astropy.units as u
 import numpy as np
 import click
@@ -107,7 +107,9 @@ def main(config, outputfile):
             runs = read_h5py(dataset['path'], key='runs', columns=['ontime'])
             ontime = runs['ontime'].sum() / 3600
             weights[l] = 1 / ontime
+
         elif dataset['kind'] == 'protons':
+
             sample_fraction = dataset.get('sample_fraction', 1.0)
             ontime = calc_proton_obstime(
                 n_events=float(dataset['n_showers']),
@@ -143,6 +145,8 @@ def main(config, outputfile):
     fig = plt.figure()
     ax_hist = fig.add_subplot(1, 1, 1)
 
+    index_weights = {}
+
     with PdfPages(outputfile) as pdf:
         for i, column in enumerate(tqdm(columns)):
 
@@ -155,6 +159,26 @@ def main(config, outputfile):
                 l = dataset['label']
                 dfs[l] = read_h5py(dataset['path'], key='events', columns=[column])
                 dfs[l]['weight'] = weights[l]
+
+                if dataset['kind'] == 'protons':
+                    if not np.isclose(dataset['spectral_index'], -2.7):
+
+                        if index_weights.get(l) is None:
+                            print('Reweighting protons')
+                            k = 'corsika_event_header_total_energy'
+                            energy = read_h5py(
+                                dataset['path'], key='events', columns=[k]
+                            )[k]
+
+                            index_weights[l] = calc_weight_change_index(
+                                u.Quantity(energy, u.GeV, copy=False),
+                                simulated_index=dataset['spectral_index'],
+                                target_index=-2.7,
+                                e_ref=1 * u.GeV,
+                            ).to_value(u.dimensionless_unscaled)
+
+                        dfs[l]['weight'] *= index_weights[l]
+
 
             if i == 0:
                 for l, df in dfs.items():
