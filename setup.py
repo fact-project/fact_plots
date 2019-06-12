@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fact_plots',
-    version='0.9.0',
+    version='0.10.0',
     description='a collection of plotting scrtipts for data of FACT',
     url='https://github.com/fact-project/fact_plots',
     author='Kai Brügge, Jens Buss, Maximilian Nöthe',
@@ -18,7 +18,7 @@ setup(
         'numexpr',
         'numpy',            # in anaconda
         'pandas',           # in anaconda
-        'pyfact>=0.23.0',
+        'pyfact>=0.24.0',
         'pytest',
         'python-dateutil',  # in anaconda
         'pytz',             # in anaconda
