@@ -59,12 +59,15 @@ def plot_angular_resolution(
 
     binned = binned.query('size > @min_bin_count')
 
+    linestyle = kwargs.pop('ls', '')
+    linestyle = kwargs.pop('linestyle', linestyle)
+
     ax.errorbar(
         binned['center'],
         binned['angular_resolution'],
         xerr=0.5 * binned['width'],
         yerr=binned['angular_resolution_err'],
-        linestyle='',
+        linestyle=linestyle,
         **kwargs
     )
 
