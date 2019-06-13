@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from .utils import kwarg_or_default
 
 def plot_bias_resolution(
         df,
@@ -13,7 +12,6 @@ def plot_bias_resolution(
         prediction_key='gamma_energy_prediction',
         true_energy_key='corsika_event_header_total_energy',
         std=False,
-        **kwargs,
         ):
     '''
     Plot energy bias and resolution vs true energy
@@ -76,9 +74,9 @@ def plot_bias_resolution(
         binned['bias'],
         xerr=0.5 * binned['width'],
         yerr=binned['bias_err'],
-        label=kwarg_or_default(kwargs, 'bias_label', 'Bias'),
+        label='Bias',
         linestyle='',
-        color=kwarg_or_default(kwargs, 'bias_color', 'C0'),
+        color='C0'
     )
 
     if std is False:
@@ -87,9 +85,9 @@ def plot_bias_resolution(
             binned['resolution_quantiles'],
             xerr=0.5 * binned['width'],
             yerr=binned['resolution_quantiles_err'],
-            label=kwarg_or_default(kwargs, 'reso_label', 'Resolution'),
+            label='Resolution',
             linestyle='',
-            color=kwarg_or_default(kwargs, 'reso_color', 'C1'),
+            color='C1',
         )
     else:
         ax_res.errorbar(
@@ -97,9 +95,9 @@ def plot_bias_resolution(
             binned['resolution'],
             yerr=binned['resolution_err'],
             xerr=0.5 * binned['width'],
-            label=kwarg_or_default(kwargs, 'reso_label', 'Resolution'),
+            label='Resolution',
             linestyle='',
-            color=kwarg_or_default(kwargs, 'reso_color', 'C1'),
+            color='C1',
         )
 
     ax_res.set_xscale('log')
