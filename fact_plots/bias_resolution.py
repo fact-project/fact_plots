@@ -12,6 +12,7 @@ def plot_bias_resolution(
         prediction_key='gamma_energy_prediction',
         true_energy_key='corsika_event_header_total_energy',
         std=False,
+        **kwargs,
         ):
     '''
     Plot energy bias and resolution vs true energy
@@ -69,14 +70,17 @@ def plot_bias_resolution(
     binned['resolution'] = resolution_stds.mean(axis=1)
     binned['resolution_err'] = resolution_stds.std(axis=1)
 
+    linestyle = kwargs.pop('ls', '')
+    linestyle = kwargs.pop('linestyle', linestyle)
+
     ax_bias.errorbar(
         binned['center'],
         binned['bias'],
         xerr=0.5 * binned['width'],
         yerr=binned['bias_err'],
-        label='Bias',
-        linestyle='',
-        color='C0'
+        label=kwargs.get('bias_label', default='Bias'),
+        linestyle=linestyle,
+        color=kwargs.get('bias_color', default='C0'),
     )
 
     if std is False:
@@ -85,9 +89,9 @@ def plot_bias_resolution(
             binned['resolution_quantiles'],
             xerr=0.5 * binned['width'],
             yerr=binned['resolution_quantiles_err'],
-            label='Resolution',
-            linestyle='',
-            color='C1',
+            label=kwargs.get('reso_label', default='Resolution'),
+            linestyle=linestyle,
+            color=kwargs.get('reso_color', default='C1'),
         )
     else:
         ax_res.errorbar(
@@ -95,9 +99,9 @@ def plot_bias_resolution(
             binned['resolution'],
             yerr=binned['resolution_err'],
             xerr=0.5 * binned['width'],
-            label='Resolution',
-            linestyle='',
-            color='C1',
+            label=kwargs.get('reso_label', default='Resolution'),
+            linestyle=linestyle,
+            color=kwargs.get('reso_color', default='C1'),
         )
 
     ax_res.set_xscale('log')
