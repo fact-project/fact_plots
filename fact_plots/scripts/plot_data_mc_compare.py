@@ -1,5 +1,5 @@
 from fact.io import read_h5py
-from fact.analysis.statistics import calc_proton_obstime, calc_weight_change_index
+from fact.analysis.statistics import calc_proton_obstime, calc_gamma_obstime
 import astropy.units as u
 import numpy as np
 import click
@@ -118,6 +118,21 @@ def main(config, outputfile):
                 viewcone=dataset['viewcone'] * u.deg,
                 e_min=float(dataset['e_min']) * u.GeV,
                 e_max=float(dataset['e_max']) * u.GeV,
+            )
+            weights[l] = 1 / (ontime.to_value(u.hour) * sample_fraction)
+
+        elif dataset['kind'] == 'gammas':
+
+            norm = dataset['phi_0']
+            norm = u.Quantity(norm['value'], norm['unit'])
+            sample_fraction = dataset.get('sample_fraction', 1.0)
+            ontime = calc_gamma_obstime(
+                n_events=float(dataset['n_showers']),
+                spectral_index=dataset['spectral_index'],
+                max_impact=dataset['max_impact'] * u.m,
+                e_min=float(dataset['e_min']) * u.GeV,
+                e_max=float(dataset['e_max']) * u.GeV,
+                flux_normalization=norm,
             )
             weights[l] = 1 / (ontime.to_value(u.hour) * sample_fraction)
 
