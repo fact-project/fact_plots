@@ -212,7 +212,7 @@ def main(config, outputfile):
 
             if i == 0:
                 for l, df in dfs.items():
-                    print(f'{l: <15}', f'{df["weight"].sum() / 3600:.1f} Events/s')
+                    print(f'{l: <15}', f'{df["weight"].sum() / 60:.1f} Events/h ')
 
             ax_hist.cla()
             try:
