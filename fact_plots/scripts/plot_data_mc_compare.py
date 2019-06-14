@@ -10,6 +10,11 @@ from collections import OrderedDict
 from tqdm import tqdm
 from fnmatch import fnmatch
 
+dl3_ids = dict(
+    observations=['event_num','run_id','night'],
+    gammas=['event_num','run_id','corsika_run_header_run_number','corsika_event_header_event_number'],
+    protons=['event_num','run_id','corsika_run_header_run_number','corsika_event_header_event_number'],
+)
 
 def wrap_angle(angle):
     angle = np.asanyarray(angle).copy()
@@ -94,9 +99,17 @@ def main(config, outputfile):
 
     # get columns available in all datasets and calculate weights
     weights = OrderedDict()
+    dl3 = OrderedDict()
     for i, dataset in enumerate(config['datasets']):
         l = dataset['label']
         df = read_h5py(dataset['path'], key='events', last=1)
+
+        if 'prediction' in config.keys():
+            if 'dl3_path' in dataset.keys():
+                dl3[l] = read_h5py(dataset['dl3_path'], key='events')
+                dl3[l] = dl3[l].query(f"gamma_prediction >= {config['prediction']['threshold']}")
+                dl3[l] = dl3[l].query(f"theta_deg <= {np.sqrt(config['prediction']['theta'])}")
+
 
         if i == 0:
             common_columns = set(df.columns)
@@ -172,7 +185,7 @@ def main(config, outputfile):
             dfs = OrderedDict()
             for dataset in config['datasets']:
                 l = dataset['label']
-                dfs[l] = read_h5py(dataset['path'], key='events', columns=[column])
+                dfs[l] = read_h5py(dataset['path'], key='events', columns=[column]+dl3_ids[dataset['kind']])
                 dfs[l]['weight'] = weights[l]
 
                 if dataset['kind'] == 'protons':
@@ -193,6 +206,8 @@ def main(config, outputfile):
                             ).to_value(u.dimensionless_unscaled)
 
                         dfs[l]['weight'] *= index_weights[l]
+                if l in dl3.keys():
+                    dfs[l] = dl3[l].merge(dfs[l], on=dl3_ids[dataset['kind']])
 
 
             if i == 0:
