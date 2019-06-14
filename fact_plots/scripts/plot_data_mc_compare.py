@@ -1,5 +1,5 @@
 from fact.io import read_h5py
-from fact.analysis.statistics import calc_proton_obstime, calc_gamma_obstime
+from fact.analysis.statistics import calc_proton_obstime, calc_gamma_obstime, calc_weight_change_index
 import astropy.units as u
 import numpy as np
 import click
