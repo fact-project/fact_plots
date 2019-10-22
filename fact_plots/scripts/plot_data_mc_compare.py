@@ -9,10 +9,15 @@ import numpy as np
 import click
 import matplotlib.pyplot as plt
 from ruamel.yaml import YAML
-from matplotlib.backends.backend_pdf import PdfPages
 from collections import OrderedDict
 from tqdm import tqdm
 from fnmatch import fnmatch
+
+if plt.get_backend() == 'pgf':
+    from matplotlib.backends.backend_pgf import PdfPages
+else:
+    from matplotlib.backends.backend_pdf import PdfPages
+
 
 ETRUE = 'corsika_event_header_total_energy'
 yaml = YAML(typ='safe')

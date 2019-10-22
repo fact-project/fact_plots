@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fact_plots',
-    version='0.10.1',
+    version='0.10.2',
     description='a collection of plotting scrtipts for data of FACT',
     url='https://github.com/fact-project/fact_plots',
     author='Kai Brügge, Jens Buss, Maximilian Nöthe',
