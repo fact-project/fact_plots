@@ -299,11 +299,11 @@ def main(config, outputfile):
                         print(f'{l: <15}', f'{data["weight"].sum() / 3600:6.2f} Events/s')
 
             ax_hist.cla()
-            # try:
-            plot_hists(dfs, column, ax=ax_hist, **kwargs)
-            # except Exception as e:
-            #     print(f'Could not plot column {column}')
-            #     print(e)
+            try:
+                plot_hists(dfs, column, ax=ax_hist, **kwargs)
+            except Exception as e:
+                print(f'Could not plot column {column}')
+                print(e)
 
             pdf.savefig(fig)
 
