@@ -310,6 +310,7 @@ def main(config, outputfile):
                 print(f'Could not plot column {column}')
                 print(e)
 
+            fig.tight_layout(pad=0)
             pdf.savefig(fig)
 
 
