@@ -74,6 +74,8 @@ def plot_hists(
     xlabel=None,
     yscale='linear',
     ax=None,
+    legend_loc='best',
+    colors=None,
 ):
     if ax is None:
         ax = plt.gca()
@@ -121,6 +123,8 @@ def plot_hists(
                 )
 
         else:
+            if colors is not None:
+                color = colors.get(label)
             ax.hist(
                 transformed,
                 bins=n_bins,
@@ -128,12 +132,13 @@ def plot_hists(
                 weights=dfs[label]['weight'],
                 label=label,
                 histtype='step',
+                color=color,
             )
 
     ax.set_ylabel('Events / h')
     ax.set_yscale(yscale)
     ax.set_xlabel(xlabel or key)
-    ax.legend()
+    ax.legend(loc=legend_loc)
 
 
 def calc_weights(dataset):
@@ -280,6 +285,8 @@ def main(config, outputfile):
     fig = plt.figure()
     ax_hist = fig.add_subplot(1, 1, 1)
 
+    colors = {d['label']: d.get('color') for d in config['datasets']}
+
     with PdfPages(outputfile) as pdf:
         for i, column in enumerate(tqdm(columns)):
 
@@ -305,7 +312,7 @@ def main(config, outputfile):
 
             ax_hist.cla()
             try:
-                plot_hists(dfs, column, ax=ax_hist, **kwargs)
+                plot_hists(dfs, column, ax=ax_hist, colors=colors, **kwargs)
             except Exception as e:
                 print(f'Could not plot column {column}')
                 print(e)
