@@ -85,9 +85,9 @@ def plot_bias_resolution(
         binned['bias'],
         xerr=0.5 * binned['width'],
         yerr=binned['bias_err'],
-        label=kwargs.get('bias_label', default='Bias'),
+        label=kwargs.get('bias_label', 'Bias'),
         linestyle=linestyle,
-        color=kwargs.get('bias_color', default='C0'),
+        color=kwargs.get('bias_color', 'C0'),
     )
 
     if std is False:
@@ -96,9 +96,9 @@ def plot_bias_resolution(
             binned['resolution_quantiles'],
             xerr=0.5 * binned['width'],
             yerr=binned['resolution_quantiles_err'],
-            label=kwargs.get('reso_label', default='Resolution'),
+            label=kwargs.get('reso_label', 'Resolution'),
             linestyle=linestyle,
-            color=kwargs.get('reso_color', default='C1'),
+            color=kwargs.get('reso_color', 'C1'),
         )
     else:
         ax_res.errorbar(
@@ -106,9 +106,9 @@ def plot_bias_resolution(
             binned['resolution'],
             yerr=binned['resolution_err'],
             xerr=0.5 * binned['width'],
-            label=kwargs.get('reso_label', default='Resolution'),
+            label=kwargs.get('reso_label', 'Resolution'),
             linestyle=linestyle,
-            color=kwargs.get('reso_color', default='C1'),
+            color=kwargs.get('reso_color', 'C1'),
         )
 
     ax_res.set_xscale('log')
