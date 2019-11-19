@@ -8,7 +8,7 @@ import numpy as np
 
 
 plot_config = {
-    'xlabel': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
+    'xlabel': r'$E_{\mathrm{true}} \,\, / \,\, \mathrm{GeV}$',
     'ylabel': r'$\theta_{0.68} \,\, / \,\, ^\circ$',
     'preliminary_position': 'upper left',
     'preliminary_size': 20,

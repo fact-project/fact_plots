@@ -8,8 +8,8 @@ import numpy as np
 
 
 plot_config = {
-    'xlabel_true': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
-    'xlabel_est': r'$E_\mathrm{est} \,\, / \,\, \mathrm{GeV}$',
+    'xlabel_true': r'$E_{\mathrm{true}} \,\, / \,\, \mathrm{GeV}$',
+    'xlabel_est': r'$E_{\mathrm{est}} \,\, / \,\, \mathrm{GeV}$',
     'preliminary_position': 'upper right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',

@@ -11,8 +11,8 @@ from ..plotting import add_preliminary
 plot_config = {
     'cmap': None,
     'logz': True,
-    'xlabel': r'$E_\mathrm{true} \,\, / \,\, \mathrm{GeV}$',
-    'ylabel': r'$E_\mathrm{est} \,\, / \,\, \mathrm{GeV}$',
+    'xlabel': r'$E_{\mathrm{true}} \,\, / \,\, \mathrm{GeV}$',
+    'ylabel': r'$E_{\mathrm{est}} \,\, / \,\, \mathrm{GeV}$',
     'preliminary_position': 'lower right',
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
