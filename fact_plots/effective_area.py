@@ -30,7 +30,6 @@ def plot_effective_area(
         selected_events,
         impact=impact,
         bins=bins,
-        log=False,
         sample_fraction=sample_fraction,
     )
     area, bin_centers, bin_width, lower_conf, upper_conf = ret
