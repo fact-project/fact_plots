@@ -42,8 +42,8 @@ def plot_effective_area(
         area.to_value(u.m**2),
         xerr=bin_width / 2,
         yerr=[
-            (area - lower_conf).to_value(u.m),
-            (upper_conf - area).to_value(u.m),
+            (area - lower_conf).to_value(u.m**2),
+            (upper_conf - area).to_value(u.m**2),
         ],
         linestyle=linestyle,
         **kwargs,
