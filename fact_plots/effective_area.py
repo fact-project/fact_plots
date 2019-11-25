@@ -39,7 +39,7 @@ def plot_effective_area(
 
     line = ax.errorbar(
         bin_centers,
-        area.value,
+        area.to_value(u.m**2),
         xerr=bin_width / 2,
         yerr=[
             (area - lower_conf).value,
