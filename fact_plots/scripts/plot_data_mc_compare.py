@@ -3,6 +3,7 @@ from fact.analysis.statistics import (
     calc_weights_cosmic_rays,
     calc_weights_powerlaw,
     calc_weights_logparabola,
+    calc_weights_exponential_cutoff,
 )
 import astropy.units as u
 import numpy as np
@@ -12,6 +13,19 @@ from ruamel.yaml import YAML
 from collections import OrderedDict
 from tqdm import tqdm
 from fnmatch import fnmatch
+from operator import lt, le, eq, ne, gt, ge
+
+
+OPERATORS = {
+    '<': lt, 'lt': lt,
+    '<=': le, 'le': le,
+    '==': eq, 'eq': eq,
+    '=': eq,
+    '!=': ne, 'ne': ne,
+    '>': gt, 'gt': gt,
+    '>=': ge, 'ge': ge,
+}
+
 
 if plt.get_backend() == 'pgf':
     from matplotlib.backends.backend_pgf import PdfPages
@@ -141,18 +155,31 @@ def plot_hists(
     ax.legend(loc=legend_loc)
 
 
-def calc_weights(dataset):
+def calc_weights(dataset, mask=None):
+    # observed datasets
     if dataset['kind'] == 'observations':
         runs = read_h5py(dataset['path'], key='runs', columns=['ontime'])
         ontime = runs['ontime'].sum() / 3600
         return 1 / ontime
 
-    if dataset['kind'] == 'protons':
+    # simulated datasets
+    kind = dataset['kind']
+    if kind in ('protons', 'gammas', 'electrons', 'helium'):
+
         energy = read_h5py(
             dataset['path'], key='events', columns=[ETRUE]
         )[ETRUE]
 
-        return calc_weights_cosmic_rays(
+        if mask is not None:
+            energy = energy[mask]
+
+        if kind == 'gammas':
+            viewcone = None
+        else:
+            viewcone = dataset['viewcone'] * u.deg
+
+        spectrum = dataset.get('spectrum')
+        kwargs = dict(
             energy=u.Quantity(energy.values, u.GeV, copy=False),
             obstime=1 * u.hour,
             n_events=dataset['n_showers'],
@@ -161,46 +188,42 @@ def calc_weights(dataset):
             simulated_index=dataset['spectral_index'],
             scatter_radius=dataset['max_impact'] * u.m,
             sample_fraction=dataset.get('sample_fraction', 1.0),
-            viewcone=dataset['viewcone'] * u.deg,
+            viewcone=viewcone,
         )
+        if spectrum is None:
+            if kind == 'protons':
+                return calc_weights_cosmic_rays(**kwargs)
 
-    if dataset['kind'] == 'gammas':
-        k = 'corsika_event_header_total_energy'
-        energy = read_h5py(
-            dataset['path'], key='events', columns=[k]
-        )[k]
-        spectrum = dataset['spectrum']
+            raise ValueError(
+                'Particle types other then protons require a "spectrum" in config'
+            )
 
         if spectrum['function'] == 'power_law':
             return calc_weights_powerlaw(
-                energy=u.Quantity(energy.values, u.GeV, copy=False),
-                obstime=1 * u.hour,
-                n_events=dataset['n_showers'],
-                e_min=dataset['e_min'] * u.GeV,
-                e_max=dataset['e_max'] * u.GeV,
-                simulated_index=dataset['spectral_index'],
-                scatter_radius=dataset['max_impact'] * u.m,
-                sample_fraction=dataset.get('sample_fraction', 1.0),
+                **kwargs,
                 flux_normalization=u.Quantity(**spectrum['phi_0']),
-                e_ref=u.Quantity(**spectrum['e_ref']),
                 target_index=spectrum['spectral_index'],
+                e_ref=u.Quantity(**spectrum['e_ref'])
             )
 
         if spectrum['function'] == 'log_parabola':
             return calc_weights_logparabola(
-                energy=u.Quantity(energy.values, u.GeV, copy=False),
-                obstime=1 * u.hour,
-                n_events=dataset['n_showers'],
-                e_min=dataset['e_min'] * u.GeV,
-                e_max=dataset['e_max'] * u.GeV,
-                simulated_index=dataset['spectral_index'],
-                scatter_radius=dataset['max_impact'] * u.m,
-                sample_fraction=dataset.get('sample_fraction', 1.0),
                 flux_normalization=u.Quantity(**spectrum['phi_0']),
                 e_ref=u.Quantity(**spectrum['e_ref']),
                 target_a=spectrum['a'],
                 target_b=spectrum['b'],
             )
+
+        if spectrum['function'] == 'power_law_exponential_cutoff':
+            return calc_weights_exponential_cutoff(
+                **kwargs,
+                flux_normalization=u.Quantity(**spectrum['phi_0']),
+                target_index=spectrum['spectral_index'],
+                target_e_cutoff=u.Quantity(**spectrum['e_cutoff']),
+                e_ref=u.Quantity(**spectrum['e_ref'])
+            )
+
+        raise ValueError('Unknown spectral function {}'.format(spectrum['function']))
 
     raise ValueError('Unknown dataset kind "{}"'.format(dataset['kind']))
 
@@ -213,18 +236,26 @@ def update_columns(dataset_config, common_columns):
     return common_columns.intersection(df.columns)
 
 
-def read_dfs_for_column(datasets, column):
+def read_dfs_for_column(datasets, column, masks=None):
     dfs = OrderedDict()
     for dataset in datasets:
         l = dataset['label']
         if 'parts' in dataset:
             dfs[l] = {}
             for part in dataset['parts']:
-                dfs[l][part['label']] = read_h5py(
+                df = read_h5py(
                     part['path'], key='events', columns=[column]
                 )
+                if masks is not None:
+                    mask = masks[l][part['label']]
+                    df = df.loc[mask].copy()
+                dfs[l][part['label']] = df
         else:
-            dfs[l] = read_h5py(dataset['path'], key='events', columns=[column])
+            df = read_h5py(dataset['path'], key='events', columns=[column])
+            if masks is not None:
+                mask = masks[l]
+                df = df.loc[mask].copy()
+            dfs[l] = df
     return dfs
 
 
@@ -237,6 +268,32 @@ def add_weights(dfs, weights):
             data['weight'] = weights[l]
 
 
+def create_masks(config):
+    masks = {}
+    mask_config = config['event_selection']
+    for dataset in config['datasets']:
+        l = dataset['label']
+        if 'parts' in dataset:
+            masks[l] = {}
+            for part in dataset['parts']:
+                masks[l][part['label']] = create_mask(part['path'], mask_config)
+        else:
+            masks[l] = create_mask(dataset['path'], mask_config)
+
+    return masks
+
+
+def create_mask(input_file, mask_config):
+    columns = list(mask_config.keys())
+    df = read_h5py(input_file, key='events', columns=columns)
+
+    mask = np.ones(len(df), dtype='bool')
+    for key, (op, val) in mask_config.items():
+        print(key, op, val)
+        mask &= OPERATORS[op](df[key], val)
+    return mask
+
+
 @click.command()
 @click.argument('config')
 @click.argument('outputfile')
@@ -247,6 +304,11 @@ def main(config, outputfile):
 
     n_bins = config.get('n_bins', 100)
 
+    if config.get('event_selection') is not None:
+        masks = create_masks(config)
+    else:
+        masks = None
+
     # get columns available in all datasets and calculate weights
     weights = OrderedDict()
     common_columns = set()
@@ -256,10 +318,12 @@ def main(config, outputfile):
             weights[dataset['label']] = {}
             for part in dataset['parts']:
                 common_columns = update_columns(part, common_columns)
-                weights[l][part['label']] = calc_weights(part)
+                mask = masks[l][part['label']] if masks is not None else None
+                weights[l][part['label']] = calc_weights(part, mask=mask)
         else:
             common_columns = update_columns(dataset, common_columns)
-            weights[l] = calc_weights(dataset)
+            mask = masks[l] if masks is not None else None
+            weights[l] = calc_weights(dataset, mask=mask)
 
     # select columns
     columns = config.get('include_columns')
@@ -282,7 +346,7 @@ def main(config, outputfile):
             )
         columns = list(filter(excluded, columns))
 
-    fig = plt.figure()
+    fig = plt.figure(constrained_layout=True)
     ax_hist = fig.add_subplot(1, 1, 1)
 
     colors = {d['label']: d.get('color') for d in config['datasets']}
@@ -295,7 +359,7 @@ def main(config, outputfile):
             if 'transform' in kwargs:
                 kwargs['transform'] = eval(kwargs['transform'])
 
-            dfs = read_dfs_for_column(config['datasets'], column)
+            dfs = read_dfs_for_column(config['datasets'], column, masks=masks)
             add_weights(dfs, weights)
 
             if i == 0:
@@ -313,12 +377,11 @@ def main(config, outputfile):
             ax_hist.cla()
             try:
                 plot_hists(dfs, column, ax=ax_hist, colors=colors, **kwargs)
+                # fig.tight_layout(pad=0)
+                pdf.savefig(fig)
             except Exception as e:
                 print(f'Could not plot column {column}')
                 print(e)
-
-            fig.tight_layout(pad=0)
-            pdf.savefig(fig)
 
 
 if __name__ == '__main__':
