@@ -52,8 +52,8 @@ def calc_limis(arrays):
     '''Calculate axis limits, try go get a nice range for visualization'''
     flat = []
     for data in arrays:
-        if isinstance(data, dict):
-            flat.extend(data.values())
+        if isinstance(data, list):
+            flat.extend(data)
         else:
             flat.append(data)
 
@@ -81,7 +81,9 @@ def unity(x):
 
 def plot_hists(
     dfs,
+    weights,
     key,
+    datasets,
     n_bins=100,
     limits=None,
     transform=None,
@@ -97,56 +99,61 @@ def plot_hists(
     if transform is None:
         transform = unity
 
-    trans = {}
-    for k, data in dfs.items():
-        if isinstance(data, dict):
-            trans[k] = dict()
-            for p, df in data.items():
-                trans[k][p] = transform(df[key].values)
+    trans = []
+    for d, dataset in enumerate(dfs):
+        if isinstance(dataset, list):
+            trans.append([])
+            for part in dataset:
+                trans[-1].append(transform(part[key].values))
         else:
-            trans[k] = transform(data[key].values)
+            trans.append(transform(dfs[d].values))
 
     if limits is None:
-        limits = calc_limis(trans.values())
+        limits = calc_limis(trans)
 
     if transform is np.log10 and xlabel is None:
         xlabel = 'log10(' + key + ')'
 
-    for label, transformed in trans.items():
-        if isinstance(transformed, dict):
-            total = np.concatenate(list(transformed.values()))
-            weights_total = np.concatenate([dfs[label][p]['weight'] for p in transformed.keys()])
+    for d, dataset in enumerate(datasets):
+        label = dataset['label']
+
+        if 'parts' in dataset:
             ax.hist(
-                total,
+                np.concatenate(trans[d]),
                 bins=n_bins,
                 range=limits,
-                weights=weights_total,
-                label=label + ' combined',
-                histtype='step',
-            )
-
-            for part, values in transformed.items():
-                ax.hist(
-                    values,
-                    bins=n_bins,
-                    range=limits,
-                    weights=dfs[label][part]['weight'],
-                    label='  ' + part,
-                    histtype='step',
-                    alpha=0.5,
-                )
-
-        else:
-            if colors is not None:
-                color = colors.get(label)
-            ax.hist(
-                transformed,
-                bins=n_bins,
-                range=limits,
-                weights=dfs[label]['weight'],
+                weights=np.concatenate(weights[d]),
                 label=label,
                 histtype='step',
-                color=color,
+                color=dataset.get('color'),
+            )
+
+            if dataset.get('show_parts', True):
+                for p, part in enumerate(dataset['parts']):
+                    color = part.get('color')
+                    alpha = part.get('alpha', 0.5 if not color else None)
+
+                    ax.hist(
+                        trans[d][p],
+                        bins=n_bins,
+                        range=limits,
+                        weights=weights[d][p],
+                        label=part['label'],
+                        histtype='step',
+                        color=color,
+                        alpha=alpha
+                    )
+
+        else:
+            ax.hist(
+                trans[d],
+                bins=n_bins,
+                range=limits,
+                weights=weights[d],
+                label=label,
+                histtype='step',
+                color=dataset.get('color'),
+                alpha=dataset.get('alpha', 1.0),
             )
 
     ax.set_ylabel('Events / h')
@@ -159,8 +166,9 @@ def calc_weights(dataset, mask=None):
     # observed datasets
     if dataset['kind'] == 'observations':
         runs = read_h5py(dataset['path'], key='runs', columns=['ontime'])
+        n_events = len(read_h5py(dataset['path'], key='events', columns=['event_num']))
         ontime = runs['ontime'].sum() / 3600
-        return 1 / ontime
+        return np.ones(n_events) / ontime
 
     # simulated datasets
     kind = dataset['kind']
@@ -192,7 +200,7 @@ def calc_weights(dataset, mask=None):
         )
         if spectrum is None:
             if kind == 'protons':
-                return calc_weights_cosmic_rays(**kwargs)
+                return calc_weights_cosmic_rays(**kwargs).to_value(u.dimensionless_unscaled)
 
             raise ValueError(
                 'Particle types other then protons require a "spectrum" in config'
@@ -204,7 +212,7 @@ def calc_weights(dataset, mask=None):
                 flux_normalization=u.Quantity(**spectrum['phi_0']),
                 target_index=spectrum['spectral_index'],
                 e_ref=u.Quantity(**spectrum['e_ref'])
-            )
+            ).to_value(u.dimensionless_unscaled)
 
         if spectrum['function'] == 'log_parabola':
             return calc_weights_logparabola(
@@ -212,7 +220,7 @@ def calc_weights(dataset, mask=None):
                 e_ref=u.Quantity(**spectrum['e_ref']),
                 target_a=spectrum['a'],
                 target_b=spectrum['b'],
-            )
+            ).to_value(u.dimensionless_unscaled)
 
         if spectrum['function'] == 'power_law_exponential_cutoff':
             return calc_weights_exponential_cutoff(
@@ -221,7 +229,7 @@ def calc_weights(dataset, mask=None):
                 target_index=spectrum['spectral_index'],
                 target_e_cutoff=u.Quantity(**spectrum['e_cutoff']),
                 e_ref=u.Quantity(**spectrum['e_ref'])
-            )
+            ).to_value(u.dimensionless_unscaled)
 
         raise ValueError('Unknown spectral function {}'.format(spectrum['function']))
 
@@ -237,48 +245,39 @@ def update_columns(dataset_config, common_columns):
 
 
 def read_dfs_for_column(datasets, column, masks=None):
-    dfs = OrderedDict()
-    for dataset in datasets:
-        l = dataset['label']
+    dfs = []
+    for d, dataset in enumerate(datasets):
         if 'parts' in dataset:
-            dfs[l] = {}
-            for part in dataset['parts']:
+            parts = []
+            for p, part in enumerate(dataset['parts']):
                 df = read_h5py(
                     part['path'], key='events', columns=[column]
                 )
                 if masks is not None:
-                    mask = masks[l][part['label']]
+                    mask = masks[d][p]
                     df = df.loc[mask].copy()
-                dfs[l][part['label']] = df
+                parts.append(df)
+            dfs.append(parts)
         else:
             df = read_h5py(dataset['path'], key='events', columns=[column])
             if masks is not None:
-                mask = masks[l]
+                mask = masks[d]
                 df = df.loc[mask].copy()
-            dfs[l] = df
+            dfs.append(df)
     return dfs
 
 
-def add_weights(dfs, weights):
-    for l, data in dfs.items():
-        if isinstance(data, dict):
-            for p, df in data.items():
-                df['weight'] = weights[l][p]
-        else:
-            data['weight'] = weights[l]
-
-
 def create_masks(config):
-    masks = {}
+    masks = []
     mask_config = config['event_selection']
-    for dataset in config['datasets']:
-        l = dataset['label']
+    for d, dataset in enumerate(config['datasets']):
         if 'parts' in dataset:
-            masks[l] = {}
+            parts = []
             for part in dataset['parts']:
-                masks[l][part['label']] = create_mask(part['path'], mask_config)
+                parts.append(create_mask(part['path'], mask_config))
+            masks.append(parts)
         else:
-            masks[l] = create_mask(dataset['path'], mask_config)
+            masks.append(create_mask(dataset['path'], mask_config))
 
     return masks
 
@@ -289,9 +288,49 @@ def create_mask(input_file, mask_config):
 
     mask = np.ones(len(df), dtype='bool')
     for key, (op, val) in mask_config.items():
-        print(key, op, val)
         mask &= OPERATORS[op](df[key], val)
     return mask
+
+
+def calc_all_weights(datasets, masks=None):
+    weights = []
+    for d, dataset in enumerate(datasets):
+        if 'parts' in dataset:
+            parts = []
+            for p, part in enumerate(dataset['parts']):
+                mask = masks[d][p] if masks is not None else None
+                parts.append(calc_weights(part, mask=mask))
+            weights.append(parts)
+        else:
+            mask = masks[d] if masks is not None else None
+            weights.append(calc_weights(dataset, mask=mask))
+    return weights
+
+
+def get_common_columns(datasets):
+    common_columns = set()
+    for dataset in datasets:
+        if 'parts' in dataset:
+            for part in dataset['parts']:
+                common_columns = update_columns(part, common_columns)
+        else:
+            common_columns = update_columns(dataset, common_columns)
+    return common_columns
+
+
+def print_event_rates(weights, datasets):
+    for d, dataset in enumerate(datasets):
+        l = dataset['label']
+        if 'parts' in dataset:
+            print(f'{l: <15}')
+            total = 0
+            for p, part in enumerate(dataset['parts']):
+                w = weights[d][p].sum()
+                total += w
+                print(f'  {part["label"]: <15}', f'{w / 3600:6.2f} Events/s')
+            print(f'  {"total": <15}', f'{total / 3600:6.2f} Events/s')
+        else:
+            print(f'{l: <15}', f'{weights[d].sum() / 3600:6.2f} Events/s')
 
 
 @click.command()
@@ -302,6 +341,8 @@ def main(config, outputfile):
     with open(config) as f:
         config = yaml.load(f)
 
+    datasets = config['datasets']
+
     n_bins = config.get('n_bins', 100)
 
     if config.get('event_selection') is not None:
@@ -310,20 +351,9 @@ def main(config, outputfile):
         masks = None
 
     # get columns available in all datasets and calculate weights
-    weights = OrderedDict()
-    common_columns = set()
-    for dataset in config['datasets']:
-        l = dataset['label']
-        if 'parts' in dataset:
-            weights[dataset['label']] = {}
-            for part in dataset['parts']:
-                common_columns = update_columns(part, common_columns)
-                mask = masks[l][part['label']] if masks is not None else None
-                weights[l][part['label']] = calc_weights(part, mask=mask)
-        else:
-            common_columns = update_columns(dataset, common_columns)
-            mask = masks[l] if masks is not None else None
-            weights[l] = calc_weights(dataset, mask=mask)
+
+    weights = calc_all_weights(datasets, masks)
+    common_columns = get_common_columns(datasets)
 
     # select columns
     columns = config.get('include_columns')
@@ -349,8 +379,6 @@ def main(config, outputfile):
     fig = plt.figure(constrained_layout=True)
     ax_hist = fig.add_subplot(1, 1, 1)
 
-    colors = {d['label']: d.get('color') for d in config['datasets']}
-
     with PdfPages(outputfile) as pdf:
         for i, column in enumerate(tqdm(columns)):
 
@@ -359,27 +387,17 @@ def main(config, outputfile):
             if 'transform' in kwargs:
                 kwargs['transform'] = eval(kwargs['transform'])
 
-            dfs = read_dfs_for_column(config['datasets'], column, masks=masks)
-            add_weights(dfs, weights)
+            dfs = read_dfs_for_column(datasets, column, masks=masks)
 
             if i == 0:
-                for l, data in dfs.items():
-                    if isinstance(data, dict):
-                        print(f'{l: <15}')
-                        total = 0
-                        for p, df in data.items():
-                            total += df['weight'].sum()
-                            print(f'  {p: <15}', f'{df["weight"].sum() / 3600:6.2f} Events/s')
-                        print(f'  {"total": <15}', f'{total / 3600:6.2f} Events/s')
-                    else:
-                        print(f'{l: <15}', f'{data["weight"].sum() / 3600:6.2f} Events/s')
+                print_event_rates(weights, datasets)
 
             ax_hist.cla()
             try:
-                plot_hists(dfs, column, ax=ax_hist, colors=colors, **kwargs)
+                plot_hists(dfs, weights, column, datasets, ax=ax_hist, **kwargs)
                 # fig.tight_layout(pad=0)
                 pdf.savefig(fig)
-            except Exception as e:
+            except IOError as e:
                 print(f'Could not plot column {column}')
                 print(e)
 
