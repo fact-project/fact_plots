@@ -166,7 +166,12 @@ def calc_weights(dataset, mask=None):
     # observed datasets
     if dataset['kind'] == 'observations':
         runs = read_h5py(dataset['path'], key='runs', columns=['ontime'])
-        n_events = len(read_h5py(dataset['path'], key='events', columns=['event_num']))
+        if mask is None:
+            n_events = len(read_h5py(
+                dataset['path'], key='events', columns=['event_num']
+            ))
+        else:
+            n_events = np.count_nonzero(mask)
         ontime = runs['ontime'].sum() / 3600
         return np.ones(n_events) / ontime
 
