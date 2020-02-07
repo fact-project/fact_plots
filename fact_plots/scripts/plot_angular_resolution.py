@@ -3,8 +3,10 @@ from fact.io import read_h5py
 from ..plotting import add_preliminary
 from ..angular_resolution import plot_angular_resolution
 import matplotlib.pyplot as plt
-import yaml
+from ruamel.yaml import YAML
 import numpy as np
+
+yaml = YAML(typ='safe')
 
 
 plot_config = {
@@ -57,7 +59,7 @@ def main(
     '''
     if config:
         with open(config) as f:
-            plot_config.update(yaml.safe_load(f))
+            plot_config.update(yaml.load(f))
 
     columns = [
         'corsika_event_header_total_energy',

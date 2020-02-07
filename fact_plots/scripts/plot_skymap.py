@@ -1,7 +1,7 @@
 import click
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
-import yaml
+from ruamel.yaml import YAML
 from astropy.coordinates import SkyCoord
 
 from fact.io import read_h5py
@@ -9,6 +9,7 @@ from fact.io import read_h5py
 from ..skymap import plot_skymap
 from ..plotting import add_preliminary
 
+yaml = YAML(typ='safe')
 plot_config = {
     'preliminary_position': 'lower center',
     'preliminary_size': 'xx-large',
@@ -47,7 +48,7 @@ def main(data_path, threshold, key, bins, width, preliminary, config, output, so
     '''
     if config:
         with open(config) as f:
-            plot_config.update(yaml.safe_load(f))
+            plot_config.update(yaml.load(f))
 
     if threshold > 0.0:
         columns.append('gamma_prediction')

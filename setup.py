@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fact_plots',
-    version='0.12.1',
+    version='0.12.2',
     description='a collection of plotting scrtipts for data of FACT',
     url='https://github.com/fact-project/fact_plots',
     author='Kai Brügge, Jens Buss, Maximilian Nöthe',
@@ -25,6 +25,7 @@ setup(
         'scipy',
         'tables',           # needs to be installed by pip for some reason
         'tqdm',
+        'ruamel.yaml~=0.15.0',
     ],
     zip_safe=False,
     entry_points={
