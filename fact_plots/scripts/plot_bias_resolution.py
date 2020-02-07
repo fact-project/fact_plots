@@ -3,7 +3,7 @@ from fact.io import read_h5py
 from ..plotting import add_preliminary
 from ..bias_resolution import plot_bias_resolution
 import matplotlib.pyplot as plt
-import yaml
+from ruamel.yaml import YAML
 import numpy as np
 
 
@@ -14,6 +14,8 @@ plot_config = {
     'preliminary_size': 20,
     'preliminary_color': 'lightgray',
 }
+
+yaml = YAML(typ='safe')
 
 
 @click.command()
@@ -44,7 +46,7 @@ def main(gamma_path, std, n_bins, e_low, e_high, threshold, theta2_cut, config, 
     '''
     if config:
         with open(config) as f:
-            plot_config.update(yaml.safe_load(f))
+            plot_config.update(yaml.load(f))
 
     df = read_h5py(
         gamma_path,

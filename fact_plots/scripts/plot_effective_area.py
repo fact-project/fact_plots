@@ -2,12 +2,14 @@ from fact.io import read_data, read_simulated_spectrum
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
-import yaml
+from ruamel.yaml import YAML
 import h5py
 import click
 
 from ..plotting import add_preliminary
 from ..effective_area import plot_effective_area
+
+yaml = YAML(typ='safe')
 
 
 plot_config = {
@@ -52,7 +54,7 @@ def main(
 ):
     if config:
         with open(config) as f:
-            plot_config.update(yaml.safe_load(f))
+            plot_config.update(yaml.load(f))
 
     all_events = read_data(corsika_headers, key='corsika_events')
 

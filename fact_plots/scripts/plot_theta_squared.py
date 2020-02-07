@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import yaml
+from ruamel.yaml import YAML
 from dateutil.parser import parse as parse_date
 
 from fact.io import read_h5py
@@ -10,6 +10,8 @@ import click
 
 from ..plotting import add_preliminary
 from ..time import read_timestamp
+
+yaml = YAML(typ='safe')
 
 plot_config = {
     'xlabel': r'$(\theta \,\, / \,\, {}^\circ )^2$',

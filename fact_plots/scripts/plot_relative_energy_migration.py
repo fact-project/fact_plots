@@ -4,10 +4,11 @@ from fact.io import read_h5py
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import yaml
+from ruamel.yaml import YAML
 
 from ..plotting import add_preliminary
 
+yaml = YAML(typ='safe')
 plot_config = {
     'cmap': None,
     'logz': False,
@@ -46,7 +47,7 @@ def main(gamma_path, std, n_bins, threshold, theta2_cut, preliminary, config, ou
 
     if config:
         with open(config) as f:
-            plot_config.update(yaml.safe_load(f))
+            plot_config.update(yaml.load(f))
 
     if threshold:
         df = df.query('gamma_prediction >= @threshold').copy()
